@@ -22,5 +22,7 @@ and \eqn{d_j} is the number of documents containing term-j.
 \examples{
 normalize( matrix(1:9, ncol=3) )
 normalize( matrix(1:9, ncol=3), byrow=FALSE )
-tfidf(matrix(rbinom(9,size=2,prob=.2),ncol=3)) 
+
+(x <- matrix(rbinom(15,size=2,prob=.25),ncol=3))
+tfidf(x)
 }
