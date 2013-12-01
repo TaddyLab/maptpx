@@ -5,7 +5,8 @@ Estimation for Topic Models
 }
 \description{ MAP estimation of Topic models  }
 \usage{
-topics(counts, K, shape=NULL, initopics=NULL, tol=0.1, bf=FALSE, kill=2, ord=TRUE, verb=1, ...)
+topics(counts, K, shape=NULL, initopics=NULL, 
+  tol=0.1, bf=FALSE, kill=2, ord=TRUE, verb=1, ...)
 }
 \arguments{
   \item{counts}{
