@@ -115,7 +115,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
   else{ tmax <- 3 }
   ## set the tolerance
   if(length(initheta)>2){ tol <- initheta[3] }
-  else{ tol <- 0.1 }
+  else{ tol <- 0.5 }
   ## print option
   if(length(initheta)>3){ verb <- initheta[4] }
   else{ verb <- 0 }
@@ -205,12 +205,13 @@ tpxfit <- function(X, theta, alpha, tol, verb,
       QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
 
     ## calculate dif
-    dif <- (QNup$L-L)/L
+    dif <- (QNup$L-L)
+    reldif <- dif/L
     L <- QNup$L
     
         
     ## check convergence
-    if(abs(dif) < tol){
+    if(abs(reldif) < tol){
       if(sum(abs(theta-move$theta)) < tol){ update = FALSE } }
 
     ## print

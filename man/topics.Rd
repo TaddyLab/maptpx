@@ -20,7 +20,7 @@ topics(counts, K, shape=NULL, initopics=NULL,
   \item{initopics}{ Optional start-location for \eqn{[\theta_1 ... \theta_K]}, the topic-phrase probabilities.  
   		    Dimensions must accord with the smallest element of \code{K}.  
   		    If \code{NULL}, the initial estimates are built by incrementally adding topics. }
-  \item{tol}{ Convergence tolerance: optimization stops, conditional on some extra checks, when the proportion posterior  increase over a full paramater set update is less than \code{tol}.}
+  \item{tol}{ Convergence tolerance: optimization stops, conditional on some extra checks, when the \emph{relative} posterior increase over a full paramater set update is less than \code{tol}.}
   \item{bf}{An indicator for whether or not to calculate the Bayes factor for univariate \code{K}.  
   If \code{length(K)>1}, this is ignored and Bayes factors are always calculated. }
   \item{kill}{For choosing from multiple \code{K} numbers of topics (evaluated in increasing order),

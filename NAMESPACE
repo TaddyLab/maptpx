@@ -1,7 +1,7 @@
 useDynLib(maptpx)
 import(slam)
 
-export(tfidf,
+export(stm_tfidf,
        normalize,
        rdir,
        topics,

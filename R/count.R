@@ -12,7 +12,7 @@ normalize <- function(x, byrow=TRUE){
 }
 
 ## converting a count/freq matrix to tfidf
-tfidf <- function(x){
+stm_tfidf <- function(x){
   idf <- log( nrow(x) ) - log(col_sums(x>0) + 1) 
   t( t(x) * idf )
 }
