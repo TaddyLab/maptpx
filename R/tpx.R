@@ -181,7 +181,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   Y <- NULL # only used for qn > 0 
   Q0 <- col_sums(X)/sum(X)
   L <- tpxlpost(X=X, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp) 
-  if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
+ # if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
   
   ## Iterate towards MAP
   while( update  && iter < tmax ){ 
@@ -206,12 +206,12 @@ tpxfit <- function(X, theta, alpha, tol, verb,
 
     ## calculate dif
     dif <- (QNup$L-L)
-    reldif <- dif/L
+   
     L <- QNup$L
     
         
     ## check convergence
-    if(abs(reldif) < tol){
+    if(abs(dif) < tol){
       if(sum(abs(theta-move$theta)) < tol){ update = FALSE } }
 
     ## print
@@ -222,7 +222,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     ## heartbeat for long jobs
     if(((iter+1)%%1000)==0){ 
           cat(sprintf("p %d iter %d diff %g\n",
-                nrow(theta), iter+1,round(diff))) }
+                nrow(theta), iter+1,round(dif))) }
 
     ## iterate
     iter <- iter+1
