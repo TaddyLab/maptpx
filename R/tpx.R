@@ -16,7 +16,7 @@ CheckCounts <- function(counts){
  
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
-                      admix=TRUE, grp=NULL, tmax=10000,
+                      admix=TRUE, method_admix=1, grp=NULL, tmax=10000,
                       wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10){
 
   ## check grp if simple mixture
@@ -29,7 +29,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
   if(length(K)==1 && bf==FALSE){
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                   admix=admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
+                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
   }
@@ -62,7 +62,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
     
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                  admix=admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
+                  admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
     
     BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, admix=admix, grp=grp) - null)
     R <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)
@@ -100,11 +100,11 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
   if(is.matrix(initheta)){
     if(ncol(initheta)!=K1){ stop("mis-match between initheta and K.") }
     if(prod(initheta>0) != 1){ stop("use probs > 0 for initheta.") }
-    return(normalize(initheta, byrow=FALSE)) }
+    return(normalizetpx(initheta, byrow=FALSE)) }
 
   if(is.matrix(alpha)){
     if(nrow(alpha)!=ncol(X) || ncol(alpha)!=K1){ stop("bad matrix alpha dimensions; check your K") }
-    return(normalize(alpha, byrow=FALSE)) }
+    return(normalizetpx(alpha, byrow=FALSE)) }
 
   if(is.null(initheta)){ ilength <- K1-1 }
   else{ ilength <- initheta[1] }
@@ -137,7 +137,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
 
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                  admix=TRUE, grp=NULL, tmax=tmax, wtol=-1, qn=-1)
+                  admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
     if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }
@@ -150,7 +150,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
 ## ** main workhorse function.  Only Called by the above wrappers.
 ## topic estimation for a given number of topics (taken as ncol(theta))
 tpxfit <- function(X, theta, alpha, tol, verb,
-                   admix, grp, tmax, wtol, qn)
+                   admix, method_admix, grp, tmax, wtol, qn)
 {
   ## inputs and dimensions
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
@@ -181,7 +181,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   Y <- NULL # only used for qn > 0 
   Q0 <- col_sums(X)/sum(X)
   L <- tpxlpost(X=X, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp) 
- # if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
+  if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
   
   ## Iterate towards MAP
   while( update  && iter < tmax ){ 
@@ -192,7 +192,11 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     else{ Wfit <- omega }
 
     ## joint parameter EM update
-    move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, grp=grp)
+    move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
+                  method_admix=method_admix, grp=grp)
+    
+#    move2 <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
+#                   method_admix=1, grp=grp)
     
     ## quasinewton-newton acceleration
     QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
@@ -201,7 +205,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     
     if(QNup$L < L){  # happens on bad Wfit, so fully reverse
       if(verb > 10){ cat("_reversing a step_") }
-      move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp)
+      move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix, 
+                    method_admix=method_admix,grp=grp)
       QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
 
     ## calculate dif
@@ -271,29 +276,50 @@ tpxweights <- function(n, p, xvo, wrd, doc, start, theta, verb=FALSE, nef=TRUE, 
 ## ** Called only in tpx.R
 
 ## single EM update. two versions: admix and mix
-tpxEM <- function(X, m, theta, omega, alpha, admix, grp)
+tpxEM <- function(X, m, theta, omega, alpha, admix, method_admix, grp)
 {
   n <- nrow(X)
   p <- ncol(X)
   K <- ncol(theta)
-
-  if(admix){ Xhat <- (X$v/tpxQ(theta=theta, omega=omega, doc=X$i, wrd=X$j))*(omega[X$i,]*theta[X$j,])
+  
+  if(admix==TRUE & method_admix==1){
+    
+    lambda <- omega%*%t(theta);
+    counts2 <- as.matrix(X);
+    temp <- t((counts2/lambda)) %*% omega;
+    t_matrix <- temp*theta;
+  
+    theta <- normalizetpx(t_matrix+alpha, byrow=FALSE)
+    full_indices <- which(omega==1, arr.ind=T)
+    full_indices_rows <- unique(full_indices[,1]);
+    omega[full_indices_rows,] <- omega[full_indices_rows,] + (1/(n*K));
+    omega <- normalizetpx(omega, byrow=TRUE)
+  }
+  
+  if(admix==TRUE & method_admix==2){ Xhat <- (X$v/tpxQ(theta=theta, omega=omega, doc=X$i, wrd=X$j))*(omega[X$i,]*theta[X$j,])
              Zhat <- .C("Rzhat", n=as.integer(n), p=as.integer(p), K=as.integer(K), N=as.integer(nrow(Xhat)),
                          Xhat=as.double(Xhat), doc=as.integer(X$i-1), wrd=as.integer(X$j-1),
                         zj = as.double(rep(0,K*p)), zi = as.double(rep(0,K*n)), PACKAGE="maptpx")
-             theta <- normalize(matrix(Zhat$zj+alpha, ncol=K), byrow=FALSE)
-             omega <- normalize(matrix(Zhat$zi+1/K, ncol=K)) }
-  else{
+             theta <- normalizetpx(matrix(Zhat$zj+alpha, ncol=K), byrow=FALSE)
+             omega <- normalizetpx(matrix(Zhat$zi+1/K, ncol=K)) }
+  if(!admix){
     qhat <- tpxMixQ(X, omega, theta, grp, qhat=TRUE)$qhat
     ## EM update
-    theta <- normalize(tcrossprod_simple_triplet_matrix( t(X), t(qhat) ) + alpha, byrow=FALSE)
-    omega <- normalize(matrix(apply(qhat*m,2, function(x) tapply(x,grp,sum)), ncol=K)+1/K )  }
+    theta <- normalizetpx(tcrossprod_simple_triplet_matrix( t(X), t(qhat) ) + alpha, byrow=FALSE)
+    omega <- normalizetpx(matrix(apply(qhat*m,2, function(x) tapply(x,grp,sum)), ncol=K)+1/K )  }
     
   return(list(theta=theta, omega=omega)) }
 
 ## Quasi Newton update for q>0 
 tpxQN <- function(move, Y, X, alpha, verb, admix, grp, doqn)
 {
+  move$theta[move$theta==1] <- 1 - 1e-14;
+  move$omega[move$omega==1] <- 1 - 1e-14;
+  move$omega[move$omega==0] <- 1e-14;
+  move$theta[move$theta==0] <- 1e-14;
+  move$theta <- normalizetpx(move$theta, byrow = FALSE)
+  move$omega <- normalizetpx(move$omega, byrow = TRUE)
+  
   ## always check likelihood
   L <- tpxlpost(X=X, theta=move$theta, omega=move$omega,
                 alpha=alpha, admix=admix, grp=grp) 
@@ -337,6 +363,12 @@ tpxQN <- function(move, Y, X, alpha, verb, admix, grp, doqn)
 ## unnormalized log posterior (objective function)
 tpxlpost <- function(X, theta, omega, alpha, admix=TRUE, grp=NULL)
 {
+  theta[theta==1] <- 1 - 1e-14;
+  omega[omega==1] <- 1 - 1e-14;
+  omega[omega==0] <- 1e-14;
+  theta[theta==0] <- 1e-14;
+  theta <- normalizetpx(theta, byrow = FALSE)
+  omega <- normalizetpx(omega, byrow = TRUE)
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix.") }
   K <- ncol(theta)
 
@@ -441,7 +473,7 @@ tpxThetaStart <- function(X, theta, omega, K)
     Kpast <- ncol(theta)
     Kdiff <- K-Kpast
     if(Kpast != ncol(omega) || Kpast >= K){ stop("bad K in tpxThetaStart") }
-    initheta <- normalize(Kpast*theta+rowMeans(theta), byrow=FALSE)
+    initheta <- normalizetpx(Kpast*theta+rowMeans(theta), byrow=FALSE)
     n <- nrow(X)
     ki <- matrix(1:(n-n%%Kdiff), ncol=Kdiff)
     for(i in 1:Kdiff){ initheta <- cbind(initheta, (col_sums(X[ki[,i],])+1/ncol(X))/(sum(X[ki[,i],])+1)) }
@@ -454,7 +486,7 @@ tpxOmegaStart <- function(X, theta)
     omega <- try(tcrossprod_simple_triplet_matrix(X, solve(t(theta)%*%theta)%*%t(theta)), silent=TRUE )
     if(inherits(omega,"try-error")){ return( matrix( 1/ncol(theta), nrow=nrow(X), ncol=ncol(theta) ) ) }
     omega[omega <= 0] <- .5
-    return( normalize(omega, byrow=TRUE) )
+    return( normalizetpx(omega, byrow=TRUE) )
   }
 
 

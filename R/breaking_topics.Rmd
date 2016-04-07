@@ -1,0 +1,179 @@
+---
+title: "Breaking down maptpx"
+author: "Kushal K Dey"
+date: "January 5, 2016"
+output: html_document
+---
+
+In this script, we break down the **maptpx** package into bits and analyze each of these bits separately. The main purpose of this script is to study the atoms of the package and then make changes to the atoms that take into account the ordering among the features or variables. We first start with a simulated example.
+
+```{r echo=TRUE, eval=TRUE}
+library(maptpx)
+n.out <- 200
+omega_sim <- cbind(seq(0.6,0.4,length.out=n.out), 1- seq(0.6,0.4,length.out=n.out));
+K <- dim(omega_sim)[2];
+barplot(t(omega_sim),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=1.5,cex.main=1.4)
+freq <- rbind(c(0.1,0.2,rep(0.70/98,98)),c(rep(0.70/98,98), 0.1,0.2));
+counts <- t(do.call(cbind,lapply(1:dim(omega_sim)[1], function(x) rmultinom(1,1000,prob=omega_sim[x,]%*%freq))));
+
+tp <- topics(counts,2,tol=0.001)
+
+barplot(t(tp$omega),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=1.5,cex.main=1.4)
+```
+
+
+We first start with the main function *topics()*. Assignment of the variables.
+
+```{r echo=TRUE, eval=TRUE}
+counts <- counts
+K <- 2;
+shape = NULL
+initopics = NULL
+tol = 0.01
+bf = FALSE
+kill = 2
+ord = TRUE
+verb =1
+tmax=10000 
+wtol=10^(-4)
+qn=100
+grp=NULL
+admix=TRUE
+nonzero=FALSE
+dcut=-10
+```
+
+```{r echo=TRUE, eval=TRUE}
+X <- CheckCounts(counts);
+p <- ncol(X) 
+  if(verb>0)
+    cat(sprintf("\nEstimating on a %d document collection.\n", nrow(X)))
+if(prod(shape>0) != 1){ stop("use shape > 0\n") }
+                
+  ## check the list of candidate K values
+  if(prod(K>1)!=1){ stop(cat("use K values > 1\n")) }
+  K <- sort(K)
+```
+
+We use the *initopics()* function which we plan to modify. The purpose of this function is to initialize the topic distribution.
+
+```{r echo=TRUE, eval=TRUE}
+initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1], shape, verb)
+  
+## either search for marginal MAP K and return bayes factors, or just fit
+tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb)
+K <- tpx$K
+
+## clean up and out
+
+if(ord){ worder <- order(col_sums(tpx$omega), decreasing=TRUE) } # order by decreasing usage
+if(!ord){ worder <- 1:K }
+## Main parameters
+theta=matrix(tpx$theta[,worder], ncol=K, dimnames=list(phrase=dimnames(X)[[2]], topic=paste(1:K)) )
+omega=matrix(tpx$omega[,worder], ncol=K, dimnames=list(document=NULL, topic=paste(1:K)) )
+if(nrow(omega)==nrow(X)){ dimnames(omega)[[1]] <- dimnames(X)[[1]] }
+  
+```
+
+We go further micro, and focus on the *tpxSelect()* function now.
+
+```{r echo=TRUE, eval=TRUE}
+  initheta <- initopics
+  alpha <- shape
+  ## return fit for single K
+  if(length(K)==1 && bf==FALSE){
+    if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
+    fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
+                   admix=admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
+    fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
+  }
+
+```
+
+Now we focus on the *tpxfit()* function
+
+```{r echo=TRUE, eval=TRUE}
+theta <- initheta
+ if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
+  K <- ncol(theta)
+  n <- nrow(X)
+  p <- ncol(X)
+  m <- row_sums(X)
+  if(is.null(alpha)){ alpha <- 1/(K*p) }
+  if(is.matrix(alpha)){ if(nrow(alpha)!=p || ncol(alpha)!=K){ stop("bad matrix alpha dimensions") }}
+
+  ## recycle these in tpcweights to save time
+  xvo <- X$v[order(X$i)]
+  wrd <- X$j[order(X$i)]-1
+  doc <- c(0,cumsum(as.double(table(factor(X$i, levels=c(1:nrow(X)))))))
+  
+  ## Initialize
+  omega <- tpxweights(n=n, p=p, xvo=xvo, wrd=wrd, doc=doc, start=tpxOmegaStart(X,theta), theta=theta)
+  if(!admix){ omega <- matrix(apply(omega,2, function(w) tapply(w,grp,mean)), ncol=K) }
+
+## tracking
+  iter <- 0
+  dif <- tol+1+qn
+  update <- TRUE
+  if(verb>0){
+    cat("log posterior increase: " )
+    digits <- max(1, -floor(log(tol, base=10))) }
+  
+  Y <- NULL # only used for qn > 0 
+  Q0 <- col_sums(X)/sum(X)
+  L <- tpxlpost(X=X, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp) 
+ # if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
+  
+    ## Iterate towards MAP
+  while( update  && iter < tmax ){ 
+
+    ## sequential quadratic programming for conditional Y solution (mainly changes omega)
+    if(admix && wtol > 0){ Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+                                start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }
+    else { Wfit <- omega }
+
+    ## joint parameter EM update (changes theta mainly, not much change in omega)
+    move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, grp=grp)
+    
+    ## quasinewton-newton acceleration (does not change theta)
+    QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
+    flag1 <- sqrt(sum((QNup$move$theta - move$theta)^2))
+    flag2 <- sqrt(sum((QNup$move$omega - move$omega)^2))
+    cat(sprintf("The difference in omega is %f and that in theta is %f",flag2,flag1))
+    move <- QNup$move
+    Y <- QNup$Y
+    
+    if(QNup$L < L){  # happens on bad Wfit, so fully reverse
+      if(verb > 10){ cat("_reversing a step_") }
+      move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp)
+      QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
+
+    ## calculate dif
+    dif <- (QNup$L-L)
+   
+    L <- QNup$L
+    
+        
+    ## check convergence
+    if(abs(dif) < tol){
+      if(sum(abs(theta-move$theta)) < tol){ update = FALSE } }
+
+    ## print
+    if(verb>0 && (iter-1)%%ceiling(10/verb)==0 && iter>0){
+      cat( paste( round(dif,digits), #" (", sum(abs(theta-move$theta)),")",
+                 ", ", sep="") ) }
+    
+    ## heartbeat for long jobs
+    if(((iter+1)%%1000)==0){ 
+          cat(sprintf("p %d iter %d diff %g\n",
+                nrow(theta), iter+1,round(dif))) }
+
+    ## iterate
+    iter <- iter+1
+    theta <- move$theta
+    omega <- move$omega
+    
+  }
+  
+```
+

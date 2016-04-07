@@ -2,7 +2,7 @@ useDynLib(maptpx)
 import(slam)
 
 export(stm_tfidf,
-       normalize,
+       normalizetpx,
        rdir,
        topics,
        predict.topics,

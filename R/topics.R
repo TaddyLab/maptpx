@@ -2,8 +2,8 @@
 
 ## intended main function; provides defaults and selects K via marginal lhd
 topics <- function(counts, K, shape=NULL, initopics=NULL, tol=0.1, 
-                   bf=FALSE, kill=2, ord=TRUE, verb=1, ...)
-  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, admix=TRUE, nonzero=FALSE, dcut=-10
+                   bf=FALSE, kill=2, ord=TRUE, verb=1, admix=TRUE, method_admix=1,...)
+  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, nonzero=FALSE, dcut=-10
 {
   X <- CheckCounts(counts)
   p <- ncol(X) 
@@ -18,7 +18,8 @@ topics <- function(counts, K, shape=NULL, initopics=NULL, tol=0.1,
   K <- sort(K)
  
   ## initialize
-  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1], shape, verb)
+  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+1, shape, verb)
+  initopics <- initopics[,1:K];
   
   ## either search for marginal MAP K and return bayes factors, or just fit
   tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, ...)
