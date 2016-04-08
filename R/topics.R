@@ -18,8 +18,8 @@ topics <- function(counts, K, shape=NULL, initopics=NULL, tol=0.1,
   K <- sort(K)
  
   ## initialize
-  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+1, shape, verb)
-  initopics <- initopics[,1:K];
+  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+3, shape, verb)
+  initopics <- initopics[,sort(sample(1:(K[1]+2), K, replace=FALSE))];
   
   ## either search for marginal MAP K and return bayes factors, or just fit
   tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, ...)
