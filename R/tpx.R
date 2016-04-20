@@ -15,9 +15,9 @@ CheckCounts <- function(counts){
 }
  
 ## Topic estimation and selection for a list of K values
-tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
-                      admix=TRUE, method_admix=1, grp=NULL, tmax=10000,
-                      wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10){
+tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
+                      use_squarem, admix=TRUE, method_admix=1, grp=NULL, 
+                      tmax=10000, wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10){
 
   ## check grp if simple mixture
   if(!admix){
@@ -29,7 +29,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
   if(length(K)==1 && bf==FALSE){
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
+                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn, 
+                   nbundles=nbundles, use_squarem)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
   }
@@ -62,7 +63,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
     
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                  admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn)
+                  admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, 
+                  qn=qn, nbundles=nbundles, use_squarem)
     
     BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, admix=admix, grp=grp) - null)
     R <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)
@@ -94,7 +96,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb,
               BF=BF, D=D, K=K[which.max(BF)])) }
 
 ## theta initialization
-tpxinit <- function(X, initheta, K1, alpha, verb){
+tpxinit <- function(X, initheta, K1, alpha, verb, nbundles, use_squarem=FALSE){
 ## initheta can be matrix, or c(nK, tmax, tol, verb)
   
   if(is.matrix(initheta)){
@@ -137,7 +139,8 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
 
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
-                  admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1)
+                  admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,
+                  nbundles = nbundles, use_squarem = FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
     if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }
@@ -150,7 +153,8 @@ tpxinit <- function(X, initheta, K1, alpha, verb){
 ## ** main workhorse function.  Only Called by the above wrappers.
 ## topic estimation for a given number of topics (taken as ncol(theta))
 tpxfit <- function(X, theta, alpha, tol, verb,
-                   admix, method_admix, grp, tmax, wtol, qn)
+                   admix, method_admix, grp, tmax, wtol, qn, nbundles,
+                   use_squarem)
 {
   ## inputs and dimensions
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
@@ -167,7 +171,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   doc <- c(0,cumsum(as.double(table(factor(X$i, levels=c(1:nrow(X)))))))
   
   ## Initialize
-  omega <- tpxweights(n=n, p=p, xvo=xvo, wrd=wrd, doc=doc, start=tpxOmegaStart(X,theta), theta=theta)
+  system.time(omega <- tpxweights(n=n, p=p, xvo=xvo, wrd=wrd, doc=doc, start=tpxOmegaStart(X,theta), theta=theta))
   if(!admix){ omega <- matrix(apply(omega,2, function(w) tapply(w,grp,mean)), ncol=K) }
 
   ## tracking
@@ -180,28 +184,64 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   
   Y <- NULL # only used for qn > 0 
   Q0 <- col_sums(X)/sum(X)
-  L <- tpxlpost(X=X, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp) 
+  L <- tpxlpost(X=X, theta=theta, omega=omega, alpha=alpha, admix=admix, grp=grp)
   if(is.infinite(L)){ L <- sum( (log(Q0)*col_sums(X))[Q0>0] ) }
+  
+  iter <- 1;
   
   ## Iterate towards MAP
   while( update  && iter < tmax ){ 
-
+    
     ## sequential quadratic programming for conditional Y solution
-    if(admix && wtol > 0){ Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
-                                start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }
+     if(admix && wtol > 0 && (iter-1)%%nbundles==0)
+     ##if(admix && wtol > 0)
+      { Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+                        start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }
     else{ Wfit <- omega }
 
-    ## joint parameter EM update
-    move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
-                  method_admix=method_admix, grp=grp)
     
 #    move2 <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
 #                   method_admix=1, grp=grp)
     
+    ## squarem acceleration
+    
+    if(use_squarem){
+      
+    Wfit <- normalizetpx(Wfit + 1e-15, byrow=TRUE);
+    theta <- normalizetpx(theta + 1e-15, byrow=FALSE);
+    param_vec_in <- c(as.vector(boot::logit(Wfit)),as.vector(boot::logit(theta)));
+  #  param_vec_in <- c(as.vector(omega),as.vector(theta));
+    res <- SQUAREM::squarem(par=as.numeric(param_vec_in),
+                   fixptfn=tpxsquarEM,
+                   objfn= tpxlpost_squarem,
+                   X=X,
+                   m=m,
+                   K=K,
+                   alpha=alpha,
+                   admix=admix,
+                   method_admix=method_admix,
+                   grp=grp,
+                   control=list(maxiter = 50, trace = FALSE, square=TRUE, tol=1e-10));
+    
+    res_omega <- inv.logit(matrix(res$par[1:(nrow(X)*K)], nrow=nrow(X), ncol=K));
+   #  res_omega <- matrix(res$par[1:(nrow(X)*K)], nrow=nrow(X), ncol=K);
+    res_theta <- inv.logit(matrix(res$par[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K));
+   #  res_theta <- matrix(res$par[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K);
+    
+    move <- list("omega"=res_omega, "theta"=res_theta);
+    QNup <- list("omega"=move$omega, "theta"=move$theta, "L"=res$value.objfn, "Y"=NULL)
+    }
+    
+    if(!use_squarem){
+    ## joint parameter EM update
+    move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
+                  method_admix=method_admix, grp=grp)
     ## quasinewton-newton acceleration
     QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
     move <- QNup$move
     Y <- QNup$Y
+    }
+   
     
     if(QNup$L < L){  # happens on bad Wfit, so fully reverse
       if(verb > 10){ cat("_reversing a step_") }
@@ -221,6 +261,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
 
     ## print
     if(verb>0 && (iter-1)%%ceiling(10/verb)==0 && iter>0){
+    ##if(verb>0 && iter>0){
       cat( paste( round(dif,digits), #" (", sum(abs(theta-move$theta)),")",
                  ", ", sep="") ) }
     
@@ -275,6 +316,18 @@ tpxweights <- function(n, p, xvo, wrd, doc, start, theta, verb=FALSE, nef=TRUE, 
 
 ## ** Called only in tpx.R
 
+tpxsquarEM <- function(param_vec_in, X, m, K,
+                       alpha, admix, method_admix, grp){
+ omega_in <- inv.logit(matrix(param_vec_in[1:(nrow(X)*K)], nrow=nrow(X), ncol=K));
+#  omega_in <- matrix(param_vec_in[1:(nrow(X)*K)], nrow=nrow(X), ncol=K);
+ theta_in <- inv.logit(matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K))
+#  theta_in <- matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K);
+ out <- tpxEM(X, m, theta_in, omega_in, alpha, admix, method_admix, grp);
+ param_vec_out <- c(as.vector(boot::logit(out$omega)),as.vector(boot::logit(out$theta)))
+# param_vec_out <- c(as.vector(out$omega),as.vector(out$theta))
+ return(param_vec_out)
+}
+
 ## single EM update. two versions: admix and mix
 tpxEM <- function(X, m, theta, omega, alpha, admix, method_admix, grp)
 {
@@ -286,10 +339,12 @@ tpxEM <- function(X, m, theta, omega, alpha, admix, method_admix, grp)
     
     lambda <- omega%*%t(theta);
     counts2 <- as.matrix(X);
-    temp <- t((counts2/lambda)) %*% omega;
-    t_matrix <- temp*theta;
-  
+    temp <- counts2/lambda;
+    t_matrix <- (t(temp) %*% omega)*theta;
+    w_matrix <- (temp %*% theta)*omega;
+      
     theta <- normalizetpx(t_matrix+alpha, byrow=FALSE)
+#    omega <- normalizetpx(w_matrix+(1/(n*K)), byrow=TRUE)
     full_indices <- which(omega==1, arr.ind=T)
     full_indices_rows <- unique(full_indices[,1]);
     omega[full_indices_rows,] <- omega[full_indices_rows,] + (1/(n*K));
@@ -359,7 +414,17 @@ tpxQN <- function(move, Y, X, alpha, verb, admix, grp, doqn)
   }
 }
 
-  
+tpxlpost_squarem <- function(param_vec_in,  X, m, K,
+                             alpha, admix=TRUE, method_admix, grp=NULL)
+{
+  omega_in <- inv.logit(matrix(param_vec_in[1:(nrow(X)*K)], nrow=nrow(X), ncol=K));
+#  omega_in <- matrix(param_vec_in[1:(nrow(X)*K)], nrow=nrow(X), ncol=K);
+  theta_in <- inv.logit(matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K))
+#  theta_in <- matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K);
+  return(tpxlpost(X, theta_in, omega_in, alpha, admix, grp))
+}
+
+
 ## unnormalized log posterior (objective function)
 tpxlpost <- function(X, theta, omega, alpha, admix=TRUE, grp=NULL)
 {
