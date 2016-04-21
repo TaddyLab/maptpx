@@ -17,7 +17,8 @@ CheckCounts <- function(counts){
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
                       use_squarem, admix=TRUE, method_admix=1, grp=NULL, 
-                      tmax=10000, wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10){
+                      tmax=10000, wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10,
+                      top_genes=100, burn_in = 10, use_light=TRUE){
 
   ## check grp if simple mixture
   if(!admix){
@@ -194,11 +195,45 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   ## Iterate towards MAP
   while( update  && iter < tmax ){ 
     
+    if(bud_light){
+    if(admix && wtol > 0 && (iter-1)%%nbundles==0){
+      if(iter < burn_in){
+        Wfit <- tpxweights(n=nrow(Xmod), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+                           start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20)
+      }
+      if(iter >= burn_in){
+        suppressWarnings(select_genes <- as.numeric(na.omit(as.vector(ExtractTopFeatures(theta, top_genes)))))
+        counts <- as.matrix(X);
+        counts.mod <- counts[,select_genes];
+        if(length(which(rowSums(counts.mod)==0))==0){
+          Xmod <- CheckCounts(counts.mod)
+          Wfit <- tpxweights(n=nrow(Xmod), p=ncol(Xmod), xvo=xvo, wrd=wrd, doc=doc,
+                             start=omega, theta=theta[select_genes,],  verb=0, nef=TRUE, wtol=wtol, tmax=20)
+        }else{
+          Wfit <- matrix(0, nrow=nrow(X), ncol=ncol(X));
+          Wfit[which(rowSums(counts.mod)==0),] <- omega[which(rowSums(counts.mod)==0),];
+          Wfit[which(rowSums(counts.mod)!=0),] <- tpxweights(n=nrow(Xmod), p=ncol(Xmod), xvo=xvo, wrd=wrd, doc=doc,
+                                                             start=omega, theta=theta[select_genes,],  verb=0, nef=TRUE, wtol=wtol, tmax=20)
+        }
+      }
+    }else{
+      Wfit <- omega;
+    }}
+    
+    if(!bud_light){
+    if(admix && wtol > 0 && (iter-1)%%nbundles==0){
+      Wfit <- tpxweights(n=nrow(Xmod), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+                      start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20)
+    }else{
+      Wfit <- omega;
+    }}
+    
+    
     ## sequential quadratic programming for conditional Y solution
-     if(admix && wtol > 0 && (iter-1)%%nbundles==0)
+#     if(admix && wtol > 0 && (iter-1)%%nbundles==0)
      ##if(admix && wtol > 0)
-      { Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
-        start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }else{ Wfit <- omega }
+#      { Wfit <- tpxweights(n=nrow(Xmod), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+#        start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }else{ Wfit <- omega }
 
     
 #    move2 <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
@@ -674,3 +709,97 @@ tpxlogdet <- function(v){
    
     return(determinant(v, logarithm=TRUE)$modulus) }
 
+ExtractTopFeatures <- function(theta,
+                               top_features = 10,
+                               method = c("poisson","bernoulli"),
+                               options=c("min", "max"))
+{
+  if(length(top_features) > 1){
+    if(length(top_features)!= dim(theta)[2]){
+      stop("length of top features should match number of clusters")
+    }
+  }else{
+    top_features <- rep(top_features, dim(theta)[2]);
+  }
+  if (is.null(method)) {
+    warning("method is not specified! Default method is Poisson distribution.")        
+    method <- "poisson"
+  }
+  if(method=="poisson") {
+    KL_score <- lapply(1:dim(theta)[2], function(n) {
+      out <- t(apply(theta, 1, function(x){
+        y=x[n] *log(x[n]/x) + x - x[n];
+        return(y)
+      }));
+      return(out)
+    })
+  }
+  
+  if(method=="bernoulli"){
+    KL_score <- lapply(1:dim(theta)[2], function(n) {
+      out <- t(apply(theta, 1, function(x){
+        y=x[n] *log(x[n]/x) + (1 - x[n])*log((1-x[n])/(1-x));
+        return(y)
+      }));
+      return(out)
+    })
+  }
+  
+  indices_mat=matrix(0,dim(theta)[2],max(top_features));
+  
+  if(dim(theta)[2]==2){
+    for(k in 1:dim(theta)[2])
+    {
+      temp_mat <- KL_score[[k]][,-k];
+      if(options=="min"){
+        vec <- apply(as.matrix(temp_mat), 1, function(x) min(x))}
+      if(options=="max"){
+        vec <- apply(as.matrix(temp_mat), 1, function(x) max(x))}
+      #vec <- temp_mat;
+      ordered_kl <- order(vec, decreasing = TRUE);
+      counter <- 1
+      flag <- counter
+      while(flag <= top_features)
+      {
+        if(which.max(theta[ordered_kl[counter],])==k){
+          indices_mat[k, flag] <- ordered_kl[counter];
+          flag <- flag + 1;
+          counter <- counter + 1;}
+        else{
+          counter <- counter + 1;
+        }
+      }
+    }
+    
+  } else{
+    for(k in 1:dim(theta)[2])
+    {
+      temp_mat <- KL_score[[k]][,-k];
+      if(options=="min"){
+        vec <- apply(temp_mat, 1, function(x) min(x))}
+      if(options=="max"){
+        vec <- apply(temp_mat, 1, function(x) max(x))}
+      
+      ordered_kl <- order(vec, decreasing = TRUE);
+      counter <- 1
+      flag <- counter
+      while(flag <= top_features)
+      {
+        if(counter > dim(theta)[1]){
+          indices_mat[k,(flag:top_features)]=NA;
+          break
+        }
+        
+        if(which.max(theta[ordered_kl[counter],])==k){
+          indices_mat[k, flag] <- ordered_kl[counter];
+          flag <- flag + 1;
+          counter <- counter + 1;
+        } else {
+          counter <- counter + 1;
+        }
+      }
+    }
+  }
+  
+  return(indices_mat);
+}
