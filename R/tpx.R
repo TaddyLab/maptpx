@@ -96,7 +96,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
               BF=BF, D=D, K=K[which.max(BF)])) }
 
 ## theta initialization
-tpxinit <- function(X, initheta, K1, alpha, verb, nbundles, use_squarem=FALSE){
+tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1, 
+                    use_squarem=FALSE, init.adapt){
 ## initheta can be matrix, or c(nK, tmax, tol, verb)
   
   if(is.matrix(initheta)){
@@ -108,19 +109,15 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles, use_squarem=FALSE){
     if(nrow(alpha)!=ncol(X) || ncol(alpha)!=K1){ stop("bad matrix alpha dimensions; check your K") }
     return(normalizetpx(alpha, byrow=FALSE)) }
 
-  if(is.null(initheta)){ ilength <- K1-1 }
-  else{ ilength <- initheta[1] }
+  if(is.null(initheta)){ ilength <- K1-1 }else{ ilength <- initheta[1] }
   if(ilength < 1){ ilength <- 1 }
 
   ## set number of initial steps
-  if(length(initheta)>1){ tmax <- initheta[2] }
-  else{ tmax <- 3 }
+  if(length(initheta)>1){ tmax <- initheta[2] }else{ tmax <- 3 }
   ## set the tolerance
-  if(length(initheta)>2){ tol <- initheta[3] }
-  else{ tol <- 0.5 }
+  if(length(initheta)>2){ tol <- initheta[3] }else{ tol <- 0.5 }
   ## print option
-  if(length(initheta)>3){ verb <- initheta[4] }
-  else{ verb <- 0 }
+  if(length(initheta)>3){ verb <- initheta[4] }else{ verb <- 0 }
   
 
   if(verb){ cat("Building initial topics") 
@@ -128,8 +125,13 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles, use_squarem=FALSE){
             else{ cat("... ") } }
             
   nK <- length( Kseq <-  unique(ceiling(seq(2,K1,length=ilength))) )
+  
+  if(!init.adapt){
+  initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(X), ncol=1), matrix(rep(1/K1,nrow(X))), K1)
+  return(initheta)
+  } else{
   initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(X), ncol=1), matrix(rep(1,nrow(X))), 2)
-
+    
   if(verb > 0)
     { cat("\n")
       print(list(Kseq=Kseq, tmax=tmax, tol=tol)) }
@@ -143,11 +145,11 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles, use_squarem=FALSE){
                   nbundles = nbundles, use_squarem = FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
-    if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }
-    else{ initheta <- fit$theta }
+    if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }else{ initheta <- fit$theta }
   }
   if(verb){ cat("done.\n") }
   return(initheta)
+  }
 }
                
 ## ** main workhorse function.  Only Called by the above wrappers.
@@ -196,8 +198,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
      if(admix && wtol > 0 && (iter-1)%%nbundles==0)
      ##if(admix && wtol > 0)
       { Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
-                        start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }
-    else{ Wfit <- omega }
+        start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20) }else{ Wfit <- omega }
 
     
 #    move2 <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
@@ -234,6 +235,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     
     if(!use_squarem){
     ## joint parameter EM update
+    Wfit <- normalizetpx(Wfit + 1e-15, byrow=TRUE);
+    theta <- normalizetpx(theta + 1e-15, byrow=FALSE);
     move <- tpxEM(X=X, m=m, theta=theta, omega=Wfit, alpha=alpha, admix=admix, 
                   method_admix=method_admix, grp=grp)
     ## quasinewton-newton acceleration
@@ -428,10 +431,10 @@ tpxlpost_squarem <- function(param_vec_in,  X, m, K,
 ## unnormalized log posterior (objective function)
 tpxlpost <- function(X, theta, omega, alpha, admix=TRUE, grp=NULL)
 {
-  theta[theta==1] <- 1 - 1e-14;
-  omega[omega==1] <- 1 - 1e-14;
-  omega[omega==0] <- 1e-14;
-  theta[theta==0] <- 1e-14;
+  theta[theta==1] <- 1 - 1e-10;
+  omega[omega==1] <- 1 - 1e-10;
+  omega[omega==0] <- 1e-10;
+  theta[theta==0] <- 1e-10;
   theta <- normalizetpx(theta, byrow = FALSE)
   omega <- normalizetpx(omega, byrow = TRUE)
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix.") }

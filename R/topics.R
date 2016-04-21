@@ -12,7 +12,8 @@ topics <- function(counts,
                    verb=1, 
                    admix=TRUE, 
                    nbundles=1,
-                   use_squarem=TRUE,
+                   use_squarem=FALSE,
+                   init.adapt=FALSE,
                    method_admix=1,...)
   ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, nonzero=FALSE, dcut=-10
 {
@@ -29,10 +30,10 @@ topics <- function(counts,
   K <- sort(K)
  
   ## initialize
-  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+3, 
-                       shape, verb, nbundles, use_squarem=FALSE)
-  initopics <- initopics[,sort(sample(1:(K[1]+2), K, replace=FALSE))];
-  
+  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1], 
+                       shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
+  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
+ # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit
   tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, nbundles, use_squarem, ...)
   K <- tpx$K
