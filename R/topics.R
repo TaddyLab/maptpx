@@ -15,8 +15,10 @@ topics <- function(counts,
                    use_squarem=FALSE,
                    init.adapt=FALSE,
                    change_start_points=FALSE,
+                   light=FALSE,
                    method_admix=1,...)
-  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, nonzero=FALSE, dcut=-10
+  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, 
+  ## nonzero=FALSE, dcut=-10, top_genes=100, burn_in=1
 {
   X <- CheckCounts(counts)
   p <- ncol(X) 
@@ -48,7 +50,7 @@ topics <- function(counts,
  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit
-  tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, nbundles, use_squarem, ...)
+  tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, nbundles, use_squarem, light, ...)
   K <- tpx$K
   
   ## clean up and out

@@ -16,9 +16,9 @@ CheckCounts <- function(counts){
  
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
-                      use_squarem, admix=TRUE, method_admix=1, grp=NULL, 
-                      tmax=10000, wtol=10^{-4}, qn=100, nonzero=FALSE, dcut=-10,
-                      top_genes=100, burn_in = 10, use_light=TRUE){
+                      use_squarem, light, admix=TRUE, method_admix=1, grp=NULL, 
+                      tmax=10000, wtol=10^{-4}, qn=100,  nonzero=FALSE, dcut=-10,
+                      top_genes=100, burn_in=1){
 
   ## check grp if simple mixture
   if(!admix){
@@ -31,7 +31,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn, 
-                   nbundles=nbundles, use_squarem)
+                   nbundles=nbundles, use_squarem, light = light, top_genes=top_genes,
+                   burn_in=burn_in)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
   }
@@ -65,7 +66,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, 
-                  qn=qn, nbundles=nbundles, use_squarem)
+                  qn=qn, nbundles=nbundles, use_squarem, light=light, top_genes=top_genes,
+                  burn_in = burn_in)
     
     BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, admix=admix, grp=grp) - null)
     R <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)
@@ -143,7 +145,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,
-                  nbundles = nbundles, use_squarem = FALSE)
+                  nbundles = nbundles, use_squarem = FALSE, light=FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
     if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }else{ initheta <- fit$theta }
@@ -157,7 +159,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
 ## topic estimation for a given number of topics (taken as ncol(theta))
 tpxfit <- function(X, theta, alpha, tol, verb,
                    admix, method_admix, grp, tmax, wtol, qn, nbundles,
-                   use_squarem)
+                   use_squarem, light, top_genes, burn_in)
 {
   ## inputs and dimensions
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
@@ -195,18 +197,18 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   ## Iterate towards MAP
   while( update  && iter < tmax ){ 
     
-    if(bud_light){
+    if(light){
     if(admix && wtol > 0 && (iter-1)%%nbundles==0){
       if(iter < burn_in){
-        Wfit <- tpxweights(n=nrow(Xmod), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+        Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
                            start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20)
       }
       if(iter >= burn_in){
         suppressWarnings(select_genes <- as.numeric(na.omit(as.vector(ExtractTopFeatures(theta, top_genes)))))
         counts <- as.matrix(X);
         counts.mod <- counts[,select_genes];
+        Xmod <- CheckCounts(counts.mod)
         if(length(which(rowSums(counts.mod)==0))==0){
-          Xmod <- CheckCounts(counts.mod)
           Wfit <- tpxweights(n=nrow(Xmod), p=ncol(Xmod), xvo=xvo, wrd=wrd, doc=doc,
                              start=omega, theta=theta[select_genes,],  verb=0, nef=TRUE, wtol=wtol, tmax=20)
         }else{
@@ -220,9 +222,9 @@ tpxfit <- function(X, theta, alpha, tol, verb,
       Wfit <- omega;
     }}
     
-    if(!bud_light){
+    if(!light){
     if(admix && wtol > 0 && (iter-1)%%nbundles==0){
-      Wfit <- tpxweights(n=nrow(Xmod), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
+      Wfit <- tpxweights(n=nrow(X), p=ncol(X), xvo=xvo, wrd=wrd, doc=doc,
                       start=omega, theta=theta,  verb=0, nef=TRUE, wtol=wtol, tmax=20)
     }else{
       Wfit <- omega;
