@@ -76,7 +76,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(verb>0) cat(paste("log BF(", K[i], ") =", round(BF[i],2)))
     if(verb>1) cat(paste(" [ ", fit$iter,"steps, disp =",round(D[1,i],2)," ]\n")) else if(verb >0) cat("\n")
     
-    if(is.nan(BF[i])){ 
+    if(is.nan(BF[i]) | is.na(BF[i])){ 
       cat("NAN for Bayes factor.\n")
       return(bestfit)
       break} 
