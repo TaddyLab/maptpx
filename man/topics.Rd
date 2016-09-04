@@ -6,7 +6,9 @@ Estimation for Topic Models
 \description{ MAP estimation of Topic models  }
 \usage{
 topics(counts, K, shape=NULL, initopics=NULL, 
-  tol=0.1, bf=FALSE, kill=2, ord=TRUE, verb=1, ...)
+  tol=0.1, bf=FALSE, kill=2, ord=TRUE, verb=1,
+  admix=TRUE, nbundles=1, use_squarem=FALSE,
+  init.adapt=FALSE, light=1, method_admix=1, ...)
 }
 \arguments{
   \item{counts}{
@@ -30,6 +32,13 @@ topics(counts, K, shape=NULL, initopics=NULL,
  by decreasing \code{colSums(omega)}).}
   \item{verb}{A switch for controlling printed output.  \code{verb > 0} will print something, with the level of detail
   increasing with \code{verb}.}
+  \item{admix}{if TRUE, admixture model used, else a mixture model is used. Defaults to TRUE}
+  \item{nbundles}{apply the active set method update to the topic proportions \code{omega} after these many steps if \code{light=1}. Defaults to 1, which essentially means the update is used at each step.}
+  \item{use_squarem}{if TRUE, uses the SQUAREM implementation due to Ravi Varadhan. Else uses the usual EM + Quasi Newton Acceleration update.}
+  \item{init.adapt}{if TRUE, adpatively initializes the topic distributions \code{theta}. Deafults to FALSE.}
+  \item{light}{May tale values 0,1,2. If \code{light=2}, we select a set of genes after a burn-in period for each cluster and iterate over these selected genes. If \code{light=1}, the active set method update occurs after every \code{nbundles} steps. If \code{light=0}, no active set method is used for updating the topic proportions \code{omega}. Defaults to 1.}
+  \item{method_admix}{May take values 1 or 2. If method_admix=1, R code is used for EM update. If \code{emthod_admix=2}, C code is used for EM update. Usually C code is preferredfor small datasets, but R code is performs more stablly for large data and is also faster. Defaults to 1.}
+  
   \item{...}{Additional arguments to the undocumented internal \code{tpx*} functions. }
  }
 \details{A latent topic model represents each i'th document's term-count vector \eqn{X_i} 

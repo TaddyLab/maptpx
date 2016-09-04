@@ -12,11 +12,5 @@ gtex.meta_data <- Biobase::pData(GTExV6Brain)
 gtex.gene_names <- rownames(gtex.counts)
 
 library(maptpx)
-library(slam)
-
-source("topics.R")
-source("tpx.R")
-source("count.R")
-
 
 out <- topics(t(gtex.counts),  K=4, tol=0.1)

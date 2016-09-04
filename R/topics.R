@@ -14,7 +14,6 @@ topics <- function(counts,
                    nbundles=1,
                    use_squarem=FALSE,
                    init.adapt=FALSE,
-                   change_start_points=FALSE,
                    light=1,
                    method_admix=1,...)
   ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, 
@@ -38,14 +37,14 @@ topics <- function(counts,
                        shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
     #initopics <- t(gtools::rdirichlet(4, rep(1+ 1/K*p, p)))
   }else{
-    if(change_start_points){
-      initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+3, 
-                           shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
-      initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
-    }else{
+ #   if(change_start_points){
+ #      initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+3, 
+ #                          shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
+ #      initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
+ #   }else{
       initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1], 
                            shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
-    }
+ #    }
   }
   
  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];

@@ -270,9 +270,9 @@ tpxfit <- function(X, theta, alpha, tol, verb,
       
     Wfit <- normalizetpx(Wfit + 1e-15, byrow=TRUE);
     theta <- normalizetpx(theta + 1e-15, byrow=FALSE);
-    param_vec_in <- c(as.vector(boot::logit(Wfit)),as.vector(boot::logit(theta)));
+    param_vec_in <- c(as.vector(logit(Wfit)),as.vector(logit(theta)));
   #  param_vec_in <- c(as.vector(omega),as.vector(theta));
-    res <- SQUAREM::squarem(par=as.numeric(param_vec_in),
+    res <- squarem(par=as.numeric(param_vec_in),
                    fixptfn=tpxsquarEM,
                    objfn= tpxlpost_squarem,
                    X=X,
@@ -282,7 +282,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
                    admix=admix,
                    method_admix=method_admix,
                    grp=grp,
-                   control=list(maxiter = 50, trace = FALSE, square=TRUE, tol=1e-10));
+                   control=list(maxiter = 5, trace = FALSE, square=TRUE, tol=1e-10));
     
     res_omega <- inv.logit(matrix(res$par[1:(nrow(X)*K)], nrow=nrow(X), ncol=K));
    #  res_omega <- matrix(res$par[1:(nrow(X)*K)], nrow=nrow(X), ncol=K);
@@ -388,7 +388,7 @@ tpxsquarEM <- function(param_vec_in, X, m, K,
  theta_in <- inv.logit(matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K))
 #  theta_in <- matrix(param_vec_in[-(1:(nrow(X)*K))], nrow=ncol(X), ncol=K);
  out <- tpxEM(X, m, theta_in, omega_in, alpha, admix, method_admix, grp);
- param_vec_out <- c(as.vector(boot::logit(out$omega)),as.vector(boot::logit(out$theta)))
+ param_vec_out <- c(as.vector(logit(out$omega)),as.vector(logit(out$theta)))
 # param_vec_out <- c(as.vector(out$omega),as.vector(out$theta))
  return(param_vec_out)
 }
