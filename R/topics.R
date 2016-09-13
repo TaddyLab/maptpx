@@ -47,6 +47,10 @@ topics <- function(counts,
  #    }
   }
   
+  initopics[initopics==1] <- 1 - 1e-14;
+  initopics[initopics==0] <- 1e-14;
+  initopics <- normalizetpx(initopics, byrow = FALSE)
+  
  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit

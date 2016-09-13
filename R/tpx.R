@@ -622,6 +622,14 @@ tpxOmegaStart <- function(X, theta)
 
 ## fast computation of sparse P(X) for X>0
 tpxQ <- function(theta, omega, doc, wrd){
+  
+  theta[theta==1] <- 1 - 1e-14;
+  theta[theta==0] <- 1e-14;
+  theta <- normalizetpx(theta, byrow = FALSE)
+  
+  omega[omega==1] <- 1 - 1e-14;
+  omega[omega==0] <- 1e-14;
+  omega <- normalizetpx(omega, byrow = TRUE)
 
   if(length(wrd)!=length(doc)){stop("index mis-match in tpxQ") }
   if(ncol(omega)!=ncol(theta)){stop("theta/omega mis-match in tpxQ") }
@@ -643,6 +651,15 @@ tpxQ <- function(theta, omega, doc, wrd){
 ## model and component likelihoods for mixture model
 tpxMixQ <- function(X, omega, theta, grp=NULL, qhat=FALSE){
   if(is.null(grp)){ grp <- rep(1, nrow(X)) }
+  
+  theta[theta==1] <- 1 - 1e-14;
+  theta[theta==0] <- 1e-14;
+  theta <- normalizetpx(theta, byrow = FALSE)
+  
+  omega[omega==1] <- 1 - 1e-14;
+  omega[omega==0] <- 1e-14;
+  omega <- normalizetpx(omega, byrow = TRUE)
+  
   K <- ncol(omega)
   n <- nrow(X)
   mixhat <- .C("RmixQ",
