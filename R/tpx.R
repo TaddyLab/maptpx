@@ -78,25 +78,28 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     
     if(is.nan(BF[i]) | is.na(BF[i])){ 
       cat("NAN for Bayes factor.\n")
-      return(bestfit)
-      break} 
+      return(list(theta=fit$theta, omega=fit$omega, alpha=fit$alpha,
+                  BF=BF, D=D, K=K))
+   #   return(bestfit)
+    } 
     
-    if(BF[i] > best){ # check for a new "best" topic
-      best <- BF[i]
-      bestfit <- fit
-    } else if(kill>0 && i>kill){ # break after kill consecutive drops
-      if(prod(BF[i-0:(kill-1)] < BF[i-1:kill])==1) break }
+    else{
+          if(BF[i] > best){ # check for a new "best" topic
+          best <- BF[i]
+          bestfit <- fit
+          } else if(kill>0 && i>kill){ # break after kill consecutive drops
+          if(prod(BF[i-0:(kill-1)] < BF[i-1:kill])==1) break }
     
-    if(i<nK){
-      if(!admix){ initheta <- tpxinit(X,2,K[i+1], alpha, 0) }
-      else{ initheta <- tpxThetaStart(X, fit$theta, fit$omega, K[i+1]) }
+          if(i<nK){
+              if(!admix){ initheta <- tpxinit(X,2,K[i+1], alpha, 0) }
+              else{ initheta <- tpxThetaStart(X, fit$theta, fit$omega, K[i+1]) }
+          }
+    names(BF) <- dimnames(D)[[2]] <- paste(K[1:length(BF)]) 
+    return(list(theta=bestfit$theta, omega=bestfit$omega, alpha=bestfit$alpha,
+              BF=BF, D=D, K=K)) 
     }
   }
-
-  names(BF) <- dimnames(D)[[2]] <- paste(K[1:length(BF)]) 
- 
-  return(list(theta=bestfit$theta, omega=bestfit$omega, alpha=bestfit$alpha,
-              BF=BF, D=D, K=K[which.max(BF)])) }
+}
 
 ## theta initialization
 tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1, 
@@ -515,7 +518,16 @@ tpxML <- function(X, theta, omega, alpha, L, dcut, admix=TRUE, grp=NULL){
   K <- ncol(theta)
   p <- nrow(theta)
   n <- nrow(omega)
-
+  
+  theta[theta==1] <- 1 - 1e-14;
+  theta[theta==0] <- 1e-14;
+  theta <- normalizetpx(theta, byrow = FALSE)
+  
+  omega[omega==1] <- 1 - 1e-14;
+  omega[omega==0] <- 1e-14;
+  omega <- normalizetpx(omega, byrow = TRUE)
+  
+  
   ## return BIC for simple finite mixture model
   if(!admix){
     qhat <- tpxMixQ(X, omega, theta, grp, qhat=TRUE)$qhat
@@ -746,10 +758,10 @@ tpxFromNEF <- function(Y, n, p, K){
 ## utility log determinant function for speed/stabilty
 tpxlogdet <- function(v){
     v <- matrix(v, ncol=sqrt(length(v)))
-    
     if( sum(zeros <- colSums(v)==0)!=0 ){
       cat("warning: boundary values in laplace approx\n")
       v <- v[-zeros,-zeros] }
    
-    return(determinant(v, logarithm=TRUE)$modulus) }
+    return(determinant(v, logarithm=TRUE)$modulus) 
+}
 
