@@ -16,8 +16,9 @@ CheckCounts <- function(counts){
 
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
-                      use_squarem, light, tmax, admix=TRUE, method_admix=1, grp=NULL,
-                      wtol=10^{-4}, qn=100,  nonzero=FALSE, dcut=-10,
+                      use_squarem, light, tmax, admix=TRUE, method_admix=1, 
+                      sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,  
+                      nonzero=FALSE, dcut=-10,
                       top_genes=150, burn_in=5){
 
   ## check grp if simple mixture

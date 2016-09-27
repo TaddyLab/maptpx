@@ -33,13 +33,15 @@ topics <- function(counts,
   if(prod(K>1)!=1){ stop(cat("use K values > 1\n")) }
   K <- sort(K)
 
-  ## initialize
-  if(init.adapt==FALSE){
   index_init <- 1:min(ceiling(nrow(X)*.05),100);
-  if(sample_init){
+  if(sample_init==TRUE){
     samp_length <- length(index_init);
     index_init <- sample(1:nrow(X),samp_length);
   }
+  
+  ## initialize
+  if(init.adapt==FALSE){
+  
   initopics <- tpxinit(X[index_init,], initopics, K[1],
                        shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
     #initopics <- t(gtools::rdirichlet(4, rep(1+ 1/K*p, p)))
@@ -49,8 +51,9 @@ topics <- function(counts,
  #                          shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
  #      initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  #   }else{
-      initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1],
-                           shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
+      initopics <- tpxinit(X[index_init,], initopics, K[1],
+                           shape, verb, nbundles=1, use_squarem=FALSE, 
+                           init.adapt)
  #    }
   }
 
@@ -61,7 +64,13 @@ topics <- function(counts,
  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit
-  tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, nbundles, use_squarem, light, tmax, ...)
+  tpx <- tpxSelect(X, K, bf, initopics, 
+                   alpha=shape, tol, kill, verb, nbundles, use_squarem, 
+                   light, tmax, admix=TRUE, method_admix=1, 
+                   sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,  
+                   nonzero=FALSE, dcut=-10,
+                   top_genes=150, burn_in=5)
+  
   K <- tpx$K
 
   ## clean up and out
