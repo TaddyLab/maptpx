@@ -16,6 +16,7 @@ topics <- function(counts,
                    init.adapt=FALSE,
                    light=1,
                    method_admix=1,
+                   sample_init=TRUE,
                    tmax=10000,...)
   ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL,
   ## nonzero=FALSE, dcut=-10, top_genes=100, burn_in=5
@@ -34,7 +35,12 @@ topics <- function(counts,
 
   ## initialize
   if(init.adapt==FALSE){
-  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1],
+  index_init <- 1:min(ceiling(nrow(X)*.05),100);
+  if(sample_init){
+    samp_length <- length(index_init);
+    index_init <- sample(1:nrow(X),samp_length);
+  }
+  initopics <- tpxinit(X[index_init,], initopics, K[1],
                        shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
     #initopics <- t(gtools::rdirichlet(4, rep(1+ 1/K*p, p)))
   }else{
