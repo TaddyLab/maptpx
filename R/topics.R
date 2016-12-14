@@ -14,6 +14,8 @@ topics <- function(counts,
                    nbundles=1,
                    use_squarem=FALSE,
                    init.adapt=FALSE,
+                   type=c("full", "independent"),
+                   signatures=NULL,
                    light=1,
                    method_admix=1,
                    sample_init=TRUE,
@@ -29,6 +31,10 @@ topics <- function(counts,
   ## check the prior parameters for theta
   if(prod(shape>0) != 1){ stop("use shape > 0\n") }
 
+  if(type == "independent"  &&  is.null(signatures)){
+    stop("For an independent model, there has to be a grouping factor data")
+  }
+
   ## check the list of candidate K values
   if(prod(K>1)!=1){ stop(cat("use K values > 1\n")) }
   K <- sort(K)
@@ -38,10 +44,10 @@ topics <- function(counts,
     samp_length <- length(index_init);
     index_init <- sample(1:nrow(X),samp_length);
   }
-  
+
   ## initialize
   if(init.adapt==FALSE){
-  
+
   initopics <- tpxinit(X[index_init,], initopics, K[1],
                        shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
     #initopics <- t(gtools::rdirichlet(4, rep(1+ 1/K*p, p)))
@@ -52,7 +58,7 @@ topics <- function(counts,
  #      initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  #   }else{
       initopics <- tpxinit(X[index_init,], initopics, K[1],
-                           shape, verb, nbundles=1, use_squarem=FALSE, 
+                           shape, verb, nbundles=1, use_squarem=FALSE,
                            init.adapt)
  #    }
   }
@@ -64,13 +70,13 @@ topics <- function(counts,
  # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
  # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit
-  tpx <- tpxSelect(X, K, bf, initopics, 
-                   alpha=shape, tol, kill, verb, nbundles, use_squarem, 
-                   light, tmax, admix=TRUE, method_admix=1, 
-                   sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,  
+  tpx <- tpxSelect(X, K, bf, initopics,
+                   alpha=shape, tol, kill, verb, nbundles, use_squarem,
+                   type, signatures, light, tmax, admix=TRUE, method_admix=1,
+                   sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
                    nonzero=FALSE, dcut=-10,
                    top_genes=150, burn_in=5)
-  
+
   K <- tpx$K
 
   ## clean up and out

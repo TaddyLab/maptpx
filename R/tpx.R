@@ -16,8 +16,8 @@ CheckCounts <- function(counts){
 
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
-                      use_squarem, light, tmax, admix=TRUE, method_admix=1, 
-                      sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,  
+                      use_squarem, type, signatures, light, tmax, admix=TRUE, method_admix=1,
+                      sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
                       nonzero=FALSE, dcut=-10,
                       top_genes=150, burn_in=5){
 
@@ -32,8 +32,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn,
-                   nbundles=nbundles, use_squarem, light = light, top_genes=top_genes,
-                   burn_in=burn_in)
+                   nbundles=nbundles, use_squarem, type=type, signatures=signatures, light = light, 
+                   top_genes=top_genes, burn_in=burn_in)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
   }
@@ -67,10 +67,12 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol,
-                  qn=qn, nbundles=nbundles, use_squarem, light=light, top_genes=top_genes,
+                  qn=qn, nbundles=nbundles, use_squarem, type=type, signatures=signatures,
+                  light=light, top_genes=top_genes,
                   burn_in = burn_in)
 
-    BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, admix=admix, grp=grp) - null)
+    BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, 
+                      admix=admix, grp=grp) - null)
     R <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)
     D <- cbind(D, unlist(R$D))
 
@@ -149,7 +151,8 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,
-                  nbundles = nbundles, use_squarem = FALSE, light=FALSE)
+                  nbundles = nbundles, type="independent", signatures=signatures, 
+                  use_squarem = FALSE, light=FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
     if(i<nK){ initheta <- tpxThetaStart(X, fit$theta, fit$omega, Kseq[i+1]) }else{ initheta <- fit$theta }
@@ -164,7 +167,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
 ## topic estimation for a given number of topics (taken as ncol(theta))
 tpxfit <- function(X, theta, alpha, tol, verb,
                    admix, method_admix, grp, tmax, wtol, qn, nbundles,
-                   use_squarem, light, top_genes, burn_in)
+                   use_squarem, type, signatures, light, top_genes, burn_in)
 {
   ## inputs and dimensions
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
@@ -295,7 +298,12 @@ tpxfit <- function(X, theta, alpha, tol, verb,
 
     move <- list("omega"=res_omega, "theta"=res_theta);
     QNup <- list("omega"=move$omega, "theta"=move$theta, "L"=res$value.objfn, "Y"=NULL)
+    if(type=="independent"){
+      out <-  tpxThetaGroupInd(QNup$theta, signatures)
+      QNup$theta <-out$theta;
+      f_array <- out$f_array;
     }
+  }
 
     if(!use_squarem){
     ## joint parameter EM update
@@ -307,15 +315,25 @@ tpxfit <- function(X, theta, alpha, tol, verb,
   #  QNup <- list("move"=move, "L"=L_new, "Y"=NULL)
     ## quasinewton-newton acceleration
     QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
+    if(type=="independent"){
+      out <-  tpxThetaGroupInd(move$theta, signatures)
+      move$theta <-out$theta;
+      f_array <- out$f_array;
+    }
     move <- QNup$move
     Y <- QNup$Y
-    }
+  }
 
 
     if(QNup$L < L){  # happens on bad Wfit, so fully reverse
       if(verb > 10){ cat("_reversing a step_") }
       move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix,
                     method_admix=method_admix,grp=grp)
+      if(type=="independent"){
+        out <-  tpxThetaGroupInd(move$theta, signatures)
+        move$theta <-out$theta;
+        f_array <- out$f_array;
+      }
       QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
 
     ## calculate dif
@@ -356,7 +374,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     cat("\n")
   }
 
-  out <- list(theta=theta, omega=omega, K=K, alpha=alpha, L=L, iter=iter)
+  out <- list(theta=theta, f_array = f_array, 
+              omega=omega, K=K, alpha=alpha, L=L, iter=iter)
   invisible(out) }
 
 
@@ -764,5 +783,32 @@ tpxlogdet <- function(v){
       v <- v[-zeros,-zeros] }
 
     return(determinant(v, logarithm=TRUE)$modulus)
+}
+
+
+tpxThetaGroupInd <- function(theta, signatures){
+  new_theta <- matrix(0, dim(theta)[1], dim(theta)[2])
+  sig_list <- list()
+  for(k in 1:dim(theta)[2]){
+    num_unique_sigs <- list()
+    for(l in 1:dim(signatures)[2]){
+      sig_list[[l]] <- tapply(theta[,k], factor(signatures[,l], levels=unique(signatures[,l])), sum)
+      num_unique_sigs[[l]] <- 0:(length(unique(signatures[,l]))-1)
+      if(l==1){
+        f_array <- sig_list[[l]]
+      }else{
+        f_array <- outer(f_array, sig_list[[l]])
+      }
+    }
+    signature_new <- as.numeric();
+    vec <- numeric()
+    grid <- expand.grid(num_unique_sigs)
+    vec <- apply(grid, 1, function(x) return(f_array[matrix(as.numeric(x)+1,1)]))
+    match(grid, signatures)
+    vec <- vec[match(data.frame(t(signatures)), data.frame(t(grid)))]
+    new_theta[,k] <-  vec
+  }
+  return("f_array" = f_array,
+         "theta" = new_theta)
 }
 
