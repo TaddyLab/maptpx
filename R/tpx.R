@@ -371,8 +371,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     cat("\n")
   }
 
-  out <- list(theta=theta, f_array = f_array, 
-              omega=omega, K=K, alpha=alpha, L=L, iter=iter)
+  out <- list(theta=theta, omega=omega, K=K, alpha=alpha, L=L, iter=iter)
   invisible(out) }
 
 
