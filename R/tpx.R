@@ -299,9 +299,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     move <- list("omega"=res_omega, "theta"=res_theta);
     QNup <- list("omega"=move$omega, "theta"=move$theta, "L"=res$value.objfn, "Y"=NULL)
     if(type=="independent"){
-      out <-  tpxThetaGroupInd(QNup$theta, signatures)$theta
+      out <-  tpxThetaGroupInd(QNup$theta, signatures)
       QNup$theta <-out$theta;
-      f_array <- out$f_array;
     }
   }
 
@@ -316,9 +315,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     ## quasinewton-newton acceleration
     QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
     if(type=="independent"){
-      out <-  tpxThetaGroupInd(move$theta, signatures)$theta
+      out <-  tpxThetaGroupInd(move$theta, signatures)
       move$theta <-out$theta;
-      f_array <- out$f_array;
     }
     move <- QNup$move
     Y <- QNup$Y
@@ -330,9 +328,8 @@ tpxfit <- function(X, theta, alpha, tol, verb,
       move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix,
                     method_admix=method_admix,grp=grp)
       if(type=="independent"){
-        out <-  tpxThetaGroupInd(move$theta, signatures)$theta
+        out <-  tpxThetaGroupInd(move$theta, signatures)
         move$theta <-out$theta;
-        f_array <- out$f_array;
       }
       QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
 
