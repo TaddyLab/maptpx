@@ -804,7 +804,7 @@ tpxThetaGroupInd <- function(theta, signatures){
     vec <- vec[match(data.frame(t(signatures)), data.frame(t(grid)))]
     new_theta[,k] <-  vec
   }
-  return("f_array" = f_array,
-         "theta" = new_theta)
+  ll <- list("f_array" = f_array, "theta" = new_theta)
+  return(ll)
 }
 
