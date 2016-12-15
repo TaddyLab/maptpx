@@ -789,7 +789,8 @@ tpxThetaGroupInd <- function(theta, signatures){
     num_unique_sigs <- list()
     for(l in 1:dim(signatures)[2]){
       sig_list[[l]] <- tapply(theta[,k], factor(signatures[,l], levels=unique(signatures[,l])), sum)
-      num_unique_sigs[[l]] <- 0:(length(unique(signatures[,l]))-1)
+     # num_unique_sigs[[l]] <- 0:(length(unique(signatures[,l]))-1)
+      num_unique_sigs[[l]] <- 0:(max(signatures[,l])-1)
       if(l==1){
         f_array <- sig_list[[l]]
       }else{
