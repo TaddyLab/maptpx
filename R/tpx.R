@@ -32,7 +32,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn,
-                   nbundles=nbundles, use_squarem, type=type, signatures=signatures, light = light, 
+                   nbundles=nbundles, use_squarem, type=type, signatures=signatures, light = light,
                    top_genes=top_genes, burn_in=burn_in)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
@@ -71,7 +71,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
                   light=light, top_genes=top_genes,
                   burn_in = burn_in)
 
-    BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut, 
+    BF <- c(BF, tpxML(X=X, theta=fit$theta, omega=fit$omega, alpha=fit$alpha, L=fit$L, dcut=dcut,
                       admix=admix, grp=grp) - null)
     R <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)
     D <- cbind(D, unlist(R$D))
@@ -151,7 +151,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,
-                  nbundles = nbundles, type="independent", signatures=signatures, 
+                  nbundles = nbundles, type="full", signatures=signatures,
                   use_squarem = FALSE, light=FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
@@ -789,8 +789,8 @@ tpxThetaGroupInd <- function(theta, signatures){
     num_unique_sigs <- list()
     for(l in 1:dim(signatures)[2]){
       sig_list[[l]] <- tapply(theta[,k], factor(signatures[,l], levels=unique(signatures[,l])), sum)
-     # num_unique_sigs[[l]] <- 0:(length(unique(signatures[,l]))-1)
-      num_unique_sigs[[l]] <- 0:(max(signatures[,l])-1)
+      num_unique_sigs[[l]] <- 0:(length(unique(signatures[,l]))-1)
+     # num_unique_sigs[[l]] <- 0:(max(signatures[,l])-1)
       if(l==1){
         f_array <- sig_list[[l]]
       }else{
@@ -800,12 +800,27 @@ tpxThetaGroupInd <- function(theta, signatures){
     signature_new <- as.numeric();
     vec <- numeric()
     grid <- expand.grid(num_unique_sigs)
+    colnames(grid) <- colnames(signatures)
     vec <- apply(grid, 1, function(x) return(f_array[matrix(as.numeric(x)+1,1)]))
-    match(grid, signatures)
-    vec <- vec[match(data.frame(t(signatures)), data.frame(t(grid)))]
-    new_theta[,k] <-  vec
+
+    a1.vec <- apply(signatures, 1, paste, collapse = "")
+    a2.vec <- apply(grid, 1, paste, collapse = "")
+    index1 <- match(a1.vec, a2.vec)
+
+  #  indices <- which(is.na(match(data.frame(t(signatures)), data.frame(t(grid))))
+  #  vec <- vec[match(data.frame(t(signatures)), data.frame(t(grid)))]
+  #  vec[is.na(vec)] <- 1e-20
+  #  vec <- vec/sum(vec);
+    new_theta[,k] <-  vec[index1]/(sum(vec[index1]))
   }
   ll <- list("f_array" = f_array, "theta" = new_theta)
   return(ll)
 }
 
+library(compare)
+out <- compare(data.frame(signatures), data.frame(grid), allowAll = TRUE)
+
+
+a1 <- data.frame(a = 1:5, b = letters[1:5])
+a2 <- data.frame(a = 1:3, b = letters[1:3])
+comparison <- compare(a1,a2,allowAll=TRUE)
