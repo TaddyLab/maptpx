@@ -817,10 +817,10 @@ tpxThetaGroupInd <- function(theta, signatures){
   return(ll)
 }
 
-library(compare)
-out <- compare(data.frame(signatures), data.frame(grid), allowAll = TRUE)
-
-
-a1 <- data.frame(a = 1:5, b = letters[1:5])
-a2 <- data.frame(a = 1:3, b = letters[1:3])
-comparison <- compare(a1,a2,allowAll=TRUE)
+# library(compare)
+# out <- compare(data.frame(signatures), data.frame(grid), allowAll = TRUE)
+# 
+# 
+# a1 <- data.frame(a = 1:5, b = letters[1:5])
+# a2 <- data.frame(a = 1:3, b = letters[1:3])
+# comparison <- compare(a1,a2,allowAll=TRUE)
