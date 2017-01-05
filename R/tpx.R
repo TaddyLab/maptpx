@@ -781,7 +781,6 @@ tpxlogdet <- function(v){
     return(determinant(v, logarithm=TRUE)$modulus)
 }
 
-
 tpxThetaGroupInd <- function(theta, signatures){
   new_theta <- matrix(0, dim(theta)[1], dim(theta)[2])
   sig_list <- list()
