@@ -1,29 +1,94 @@
 ##### Estimation for Topic Models ######
 
 ## intended main function; provides defaults and selects K via marginal lhd
-topics <- function(counts, K, shape=NULL, initopics=NULL, tol=0.1, 
-                   bf=FALSE, kill=2, ord=TRUE, verb=1, ...)
-  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL, admix=TRUE, nonzero=FALSE, dcut=-10
+topics <- function(counts,
+                   K,
+                   shape=NULL,
+                   initopics=NULL,
+                   tol=0.1,
+                   bf=FALSE,
+                   kill=2,
+                   ord=TRUE,
+                   verb=1,
+                   admix=TRUE,
+                   nbundles=1,
+                   use_squarem=FALSE,
+                   init.adapt=FALSE,
+                   type="full",
+                   ind_model_indices = NULL,
+                   signatures=NULL,
+                   light=1,
+                   method_admix=1,
+                   sample_init=TRUE,
+                   tmax=10000,...)
+  ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL,
+  ## nonzero=FALSE, dcut=-10, top_genes=100, burn_in=5
 {
   X <- CheckCounts(counts)
-  p <- ncol(X) 
+  p <- ncol(X)
   if(verb>0)
     cat(sprintf("\nEstimating on a %d document collection.\n", nrow(X)))
 
   ## check the prior parameters for theta
   if(prod(shape>0) != 1){ stop("use shape > 0\n") }
-                
+
+  if(type == "independent"  &&  is.null(signatures)){
+    stop("For an independent model, there has to be a grouping factor data")
+  }
+
+  if(type=="independent" && is.null(ind_model_indices)){
+    ind_model_indices <- dim(counts)[2]
+  }
+
   ## check the list of candidate K values
   if(prod(K>1)!=1){ stop(cat("use K values > 1\n")) }
   K <- sort(K)
- 
+
+  index_init <- 1:(max(2, min(ceiling(nrow(X)*.05),100)));
+  if(sample_init==TRUE){
+    samp_length <- length(index_init);
+    index_init <- sample(1:nrow(X),samp_length);
+  }
+
   ## initialize
-  initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1], shape, verb)
-  
+  if(init.adapt==FALSE){
+
+  initopics <- tpxinit(X[index_init,], initopics, K[1],
+                       shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
+    #initopics <- t(gtools::rdirichlet(4, rep(1+ 1/K*p, p)))
+  }else{
+ #   if(change_start_points){
+ #      initopics <- tpxinit(X[1:min(ceiling(nrow(X)*.05),100),], initopics, K[1]+3,
+ #                          shape, verb, nbundles=1, use_squarem=FALSE, init.adapt)
+ #      initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
+ #   }else{
+      initopics <- tpxinit(X[index_init,], initopics, K[1],
+                           shape, verb, nbundles=1, use_squarem=FALSE,
+                           init.adapt)
+ #    }
+  }
+
+  initopics[initopics==1] <- 1 - 1e-14;
+  initopics[initopics==0] <- 1e-14;
+  initopics <- normalizetpx(initopics, byrow = FALSE)
+
+  if(type=="independent"){
+     out <-  tpxThetaGroupInd(initopics, ind_model_indices, signatures)
+     initopics <-out$theta;
+  }
+
+ # initopics <- initopics[,sort(sample(1:(K[1]+2), K[1], replace=FALSE))];
+ # initopics <- initopics[,1:K[1]];
   ## either search for marginal MAP K and return bayes factors, or just fit
-  tpx <- tpxSelect(X, K, bf, initopics, alpha=shape, tol, kill, verb, ...)
+  tpx <- tpxSelect(X, K, bf, initopics,
+                   alpha=shape, tol, kill, verb, nbundles, use_squarem,
+                   type, ind_model_indices, signatures, light, tmax, admix=TRUE,
+                   method_admix=1,sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
+                   nonzero=FALSE, dcut=-10,
+                   top_genes=150, burn_in=5)
+
   K <- tpx$K
-  
+
   ## clean up and out
   if(ord){ worder <- order(col_sums(tpx$omega), decreasing=TRUE) } # order by decreasing usage
   else{ worder <- 1:K }
@@ -31,13 +96,13 @@ topics <- function(counts, K, shape=NULL, initopics=NULL, tol=0.1,
   theta=matrix(tpx$theta[,worder], ncol=K, dimnames=list(phrase=dimnames(X)[[2]], topic=paste(1:K)) )
   omega=matrix(tpx$omega[,worder], ncol=K, dimnames=list(document=NULL, topic=paste(1:K)) )
   if(nrow(omega)==nrow(X)){ dimnames(omega)[[1]] <- dimnames(X)[[1]] }
-  
+
   ## topic object
   out <- list(K=K, theta=theta, omega=omega, BF=tpx$BF, D=tpx$D, X=X)
   class(out) <- "topics"
   invisible(out) }
 
- 
+
 ## S3 method predict function
 predict.topics <- function(object, newcounts, loglhd=FALSE, ...)
   ## tpxweights optional arguments and defauls are verb=FALSE, nef=TRUE, wtol=10^{-5}, tmax=1000
@@ -45,7 +110,7 @@ predict.topics <- function(object, newcounts, loglhd=FALSE, ...)
   if(is.vector(newcounts)){ newcounts <- matrix(newcounts, nrow=1) }
   if(class(newcounts)[1] == "TermDocumentMatrix"){ newcounts <- t(newcounts) }
   X <- as.simple_triplet_matrix(newcounts)
-  
+
   if(!(class(object)%in%c("topics","matrix"))){ stop("object class must be `topics' or 'matrix'.") }
 
   if(class(object)=="topics"){
@@ -53,12 +118,12 @@ predict.topics <- function(object, newcounts, loglhd=FALSE, ...)
     if(nrow(theta) != ncol(X)){ stop("Dimension mismatch: nrow(theta) != ncol(X)") }
     if(nrow(object$X) != nrow(object$omega)) # simple mixture
       { Q <- matrix(tpxMixQ(X, omega=object$omega, theta=theta, ...)$lQ, ncol=ncol(theta))
-        return( (1:ncol(theta))[apply(Q,1,which.max)] ) } 
+        return( (1:ncol(theta))[apply(Q,1,which.max)] ) }
   }
   else{ theta <- object }
 
   start <- tpxOmegaStart(X=X, theta=theta)
-  
+
   ## re-order xvec in doc-blocks, and build indices
   doc <- c(0,cumsum(as.double(table(factor(X$i, levels=c(1:nrow(X)))))))
   xvo <- X$v[order(X$i)]
@@ -75,11 +140,11 @@ predict.topics <- function(object, newcounts, loglhd=FALSE, ...)
 ## S3 method summary function
 summary.topics <- function(object, nwrd=5, tpk=NULL, verb=TRUE, ...){
 
-    
+
   K <- object$K
   if(is.null(tpk)){ tpk <- 1:K }
   else if(prod(tpk %in% 1:K)!=1){ stop("requested tpk's are not in 1:K") }
- 
+
   if(nwrd>0){ if(verb){ cat(paste("\nTop", nwrd, "phrases by topic-over-null term lift (and usage %):\n\n")) }
               Q0 <- col_sums(object$X)/sum(object$X)
               topwords <- c()
@@ -101,7 +166,7 @@ summary.topics <- function(object, nwrd=5, tpk=NULL, verb=TRUE, ...){
               dimnames(toplift)[[1]] <- dimnames(toplift)[[1]] <- 1:nwrd
             }
   else{ topwords <- toplift <- NULL }
-              
+
   if(!is.null(object$BF) && !is.null(object$D) && verb)
     {
       cat("\nLog Bayes factor and estimated dispersion, by number of topics:\n\n")
@@ -124,12 +189,12 @@ summary.topics <- function(object, nwrd=5, tpk=NULL, verb=TRUE, ...){
 TOPICOLS <- matrix(nrow=6,
                    c(grey(c(.9,.8,.7,.55,.35,0)), #GREY
                      "#FFCCCC", "#FA8072", "#FF5333", "#EE0000", "#CC1100", "#800000", #RED
-                     "#BDFCC9", "#98FB98", "#49E20E", "#009900", "#006400", "#004F00", #GREEN	
+                     "#BDFCC9", "#98FB98", "#49E20E", "#009900", "#006400", "#004F00", #GREEN
                      "#BBFFFF", "#67E6EC", "#00C5CD", "#0198E1", "#0147FA",  "#000080"))  #BLUE
 
-              	
 
-plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL, 
+
+plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
                         col=NULL, xlab=NULL, ylab=NULL, main=NULL, tpk=NULL,
                         lgd.K=NULL, cex.lgdc = 1, cex.lgdt = 1, cex.rmar= 1, ...){
 
@@ -144,10 +209,10 @@ plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
     hist(resids, col=col, border=grey(.9),
          xlab=xlab,
          main="", cex.lab=cex.lgdt, font.lab=3)
-    
+
     return(invisible())
   }
-  
+
   n <- nrow(x$omega)
   mmm <- n==nrow(x$X)
   if(n==1){
@@ -159,11 +224,11 @@ plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
 
   if(is.null(tpk)){ tpk <- 1:x$K }
   if(is.null(lgd.K)){ lgd.K <- max(.1*length(tpk),.75) }
-  
+
   if(is.null(group) || !mmm){
     ltop = .65*n
     lbot = .35*n
-    
+
     if(is.null(col)){ col<-1 }
     tpcl <- c(0, TOPICOLS[1:6,col[1]%%5])
     W <- x$omega[,tpk]
@@ -178,11 +243,11 @@ plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
     group <- as.factor(group)
     ltop = .85*n
     lbot = .15*n
-    
+
     if(length(group)!=n){ stop("Your group membership length doesn't match omega.") }
     if(nlevels(group)!=2){ stop("Sorry, grouping must be a two-level factor") }
     if(is.null(col) || length(col)<2){ col <- 1:2 }
-    
+
     tpcl <- c(TOPICOLS[6:1,col[1]%%5],"#FFFFFF",TOPICOLS[,col[2]%%5])
     brks <- c(seq(-1, -0.1,length=7),seq(0.1,1,length=7))
     W <- x$omega[,tpk]*(c(-1,1)[as.logical(group)+1])
@@ -207,7 +272,7 @@ plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
 
   if(!mmm){ axis(side=2, at=1:n) }
   else{axis(2)}
-  
+
   points(rep(xlg,length(tpcl)), seq(lbot,ltop,length=length(tpcl)), col=tpcl, pch=15, cex=3*cex.lgdc)
   text(rep(xlg,2), y=c(lbot-.08*n, ltop+.08*n), tplg, cex=cex.lgdt)
   if(!is.null(labels)){ text(rep(xlg,2), y=c(lbot-.14*n, ltop+.14*n), labels, font=3, cex=cex.lgdt) }
@@ -216,7 +281,7 @@ plot.topics <- function(x, type=c("weight","resid"), group=NULL, labels=NULL,
 
 ## logit and expit, treating first element as null
 logit <- function(prob){
-  f <- function(p) .C("Rlogit", d=as.integer(d), 
+  f <- function(p) .C("Rlogit", d=as.integer(d),
     eta=double(d-1), prob=as.double(p), PACKAGE="maptpx")$eta
   prob[prob < 1e-10] <- 1e-10
   prob[1-prob < 1e-10] <- 1-1e-10
@@ -231,7 +296,7 @@ logit <- function(prob){
   return(eta) }
 
 expit <- function(eta){
-  f <- function(e) .C("Rexpit", d=as.integer(d), prob=double(d), 
+  f <- function(e) .C("Rexpit", d=as.integer(d), prob=double(d),
     eta=as.double(e), PACKAGE="maptpx")$prob
   eta[eta==Inf] <- 1e10
   eta[eta==-Inf] <- -1e10
@@ -256,7 +321,7 @@ topicVar <- function(counts, theta, omega){
   K <- ncol(omega)
   n <- nrow(X)
   p <- nrow(theta)
-  
+
   q <- tpxQ(theta=theta, omega=omega, doc=X$i, wrd=X$j)
   H <- array(.C("RnegHW",
                   n = as.integer(n),
