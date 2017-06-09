@@ -1,8 +1,10 @@
 useDynLib(maptpx)
 import(slam)
+import(SQUAREM)
+import(boot)
 
 export(stm_tfidf,
-       normalize,
+       normalizetpx,
        rdir,
        topics,
        predict.topics,
