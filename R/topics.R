@@ -15,6 +15,7 @@ topics <- function(counts,
                    use_squarem=FALSE,
                    init.adapt=FALSE,
                    type="full",
+                   ind_model_indices = NULL,
                    signatures=NULL,
                    light=1,
                    method_admix=1,
@@ -33,6 +34,10 @@ topics <- function(counts,
 
   if(type == "independent"  &&  is.null(signatures)){
     stop("For an independent model, there has to be a grouping factor data")
+  }
+
+  if(type=="independent" && is.null(ind_model_indices)){
+    ind_model_indices <- dim(counts)[2]
   }
 
   ## check the list of candidate K values
@@ -68,7 +73,7 @@ topics <- function(counts,
   initopics <- normalizetpx(initopics, byrow = FALSE)
 
   if(type=="independent"){
-     out <-  tpxThetaGroupInd(initopics, signatures)
+     out <-  tpxThetaGroupInd(initopics, ind_model_indices, signatures)
      initopics <-out$theta;
   }
 
@@ -77,8 +82,8 @@ topics <- function(counts,
   ## either search for marginal MAP K and return bayes factors, or just fit
   tpx <- tpxSelect(X, K, bf, initopics,
                    alpha=shape, tol, kill, verb, nbundles, use_squarem,
-                   type, signatures, light, tmax, admix=TRUE, method_admix=1,
-                   sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
+                   type, ind_model_indices, signatures, light, tmax, admix=TRUE,
+                   method_admix=1,sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
                    nonzero=FALSE, dcut=-10,
                    top_genes=150, burn_in=5)
 

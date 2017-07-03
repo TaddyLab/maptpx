@@ -16,7 +16,7 @@ CheckCounts <- function(counts){
 
 ## Topic estimation and selection for a list of K values
 tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
-                      use_squarem, type, signatures, light, tmax, admix=TRUE, method_admix=1,
+                      use_squarem, type, ind_model_indices, signatures, light, tmax, admix=TRUE, method_admix=1,
                       sample_init=TRUE, grp=NULL, wtol=10^{-4}, qn=100,
                       nonzero=FALSE, dcut=-10,
                       top_genes=150, burn_in=5){
@@ -32,7 +32,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn,
-                   nbundles=nbundles, use_squarem, type=type, signatures=signatures, light = light,
+                   nbundles=nbundles, use_squarem, type=type, ind_model_indices = ind_model_indices,
+                   signatures=signatures, light = light,
                    top_genes=top_genes, burn_in=burn_in)
     fit$D <- tpxResids(X=X, theta=fit$theta, omega=fit$omega, grp=grp, nonzero=nonzero)$D
     return(fit)
@@ -67,7 +68,9 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol,
-                  qn=qn, nbundles=nbundles, use_squarem, type=type, signatures=signatures,
+                  qn=qn, nbundles=nbundles, use_squarem, type=type,
+                  ind_model_indices = ind_model_indices,
+                  signatures=signatures,
                   light=light, top_genes=top_genes,
                   burn_in = burn_in)
 
@@ -167,7 +170,8 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
 ## topic estimation for a given number of topics (taken as ncol(theta))
 tpxfit <- function(X, theta, alpha, tol, verb,
                    admix, method_admix, grp, tmax, wtol, qn, nbundles,
-                   use_squarem, type, signatures, light, top_genes, burn_in)
+                   use_squarem, type, ind_model_indices, signatures, light,
+                   top_genes, burn_in)
 {
   ## inputs and dimensions
   if(!inherits(X,"simple_triplet_matrix")){ stop("X needs to be a simple_triplet_matrix") }
@@ -299,7 +303,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     move <- list("omega"=res_omega, "theta"=res_theta);
     QNup <- list("omega"=move$omega, "theta"=move$theta, "L"=res$value.objfn, "Y"=NULL)
     if(type=="independent"){
-      out <-  tpxThetaGroupInd(QNup$theta, signatures)
+      out <-  tpxThetaGroupInd(QNup$theta, ind_model_indices, signatures)
       QNup$theta <-out$theta;
     }
   }
@@ -315,7 +319,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
     ## quasinewton-newton acceleration
     QNup <- tpxQN(move=move, Y=Y, X=X, alpha=alpha, verb=verb, admix=admix, grp=grp, doqn=qn-dif)
     if(type=="independent"){
-      out <-  tpxThetaGroupInd(move$theta, signatures)
+      out <-  tpxThetaGroupInd(move$theta, ind_model_indices, signatures)
       move$theta <-out$theta;
     }
     move <- QNup$move
@@ -328,7 +332,7 @@ tpxfit <- function(X, theta, alpha, tol, verb,
       move <- tpxEM(X=X, m=m, theta=theta, omega=omega, alpha=alpha, admix=admix,
                     method_admix=method_admix,grp=grp)
       if(type=="independent"){
-        out <-  tpxThetaGroupInd(move$theta, signatures)
+        out <-  tpxThetaGroupInd(move$theta, ind_model_indices, signatures)
         move$theta <-out$theta;
       }
       QNup$L <-  tpxlpost(X=X, theta=move$theta, omega=move$omega, alpha=alpha, admix=admix, grp=grp) }
@@ -781,7 +785,15 @@ tpxlogdet <- function(v){
     return(determinant(v, logarithm=TRUE)$modulus)
 }
 
-tpxThetaGroupInd <- function(theta, signatures){
+tpxThetaGroupInd <- function(theta_old, ind_model_indices, signatures){
+  if(dim(signatures)[1] != length(ind_model_indices)){
+    stop("the number of possible signatures must match with the number of independence indices provided")
+  }
+  if(length(ind_model_indices) < dim(theta_old)[1]){
+    theta1 <- theta_old[-ind_model_indices,]
+  }
+  theta <- theta_old[ind_model_indices, ]
+  theta <- apply(theta, 2, function(x) return(x/sum(x)))
   new_theta <- matrix(0, dim(theta)[1], dim(theta)[2])
   sig_list <- list()
   for(k in 1:dim(theta)[2]){
@@ -800,6 +812,11 @@ tpxThetaGroupInd <- function(theta, signatures){
     vec <- numeric()
     grid <- expand.grid(num_unique_sigs)
     colnames(grid) <- colnames(signatures)
+#
+#     for(x in 1:dim(grid)[1])
+#     {
+#       out <- f_array[matrix(as.numeric(grid[x,])+1,1)]
+#     }
     vec <- apply(grid, 1, function(x) return(f_array[matrix(as.numeric(x)+1,1)]))
 
     a1.vec <- apply(signatures, 1, paste, collapse = "")
@@ -812,14 +829,21 @@ tpxThetaGroupInd <- function(theta, signatures){
   #  vec <- vec/sum(vec);
     new_theta[,k] <-  vec[index1]/(sum(vec[index1]))
   }
-  ll <- list("f_array" = f_array, "theta" = new_theta)
+  new_theta_2 <- matrix(0, dim(theta_old)[1], dim(theta_old)[2])
+  new_theta_2[ind_model_indices, ] <- new_theta
+  if(length(ind_model_indices) < dim(theta_old)[1]){
+    new_theta_2[-ind_model_indices, ] <- theta1
+  }
+  new_theta_2 <- apply(new_theta_2, 2, function(x) return(x/sum(x)))
+  rownames(new_theta_2) <- rownames(theta_old)
+  ll <- list("f_array" = f_array, "theta" = new_theta_2)
   return(ll)
 }
 
 # library(compare)
 # out <- compare(data.frame(signatures), data.frame(grid), allowAll = TRUE)
-# 
-# 
+#
+#
 # a1 <- data.frame(a = 1:5, b = letters[1:5])
 # a2 <- data.frame(a = 1:3, b = letters[1:3])
 # comparison <- compare(a1,a2,allowAll=TRUE)
