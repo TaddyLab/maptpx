@@ -1,12 +1,9 @@
 useDynLib(maptpx)
 import(slam)
-<<<<<<< HEAD
 import(stats)
 importFrom("grDevices", "grey")
 importFrom("graphics", "axis", "hist", "image", "par", "plot",
              "points", "text")
-=======
->>>>>>> 93f09fb5631b374433040fa1b85473ea39049d18
 import(SQUAREM)
 import(boot)
 

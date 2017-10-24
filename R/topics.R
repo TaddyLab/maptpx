@@ -27,7 +27,7 @@ topics <- function(counts,
   X <- CheckCounts(counts)
   p <- ncol(X)
   if(verb>0)
-    cat(sprintf("\nEstimating on a %d document collection.\n", nrow(X)))
+    cat(sprintf("\nEstimating on a %d samples collection.\n", nrow(X)))
 
   ## check the prior parameters for theta
   if(prod(shape>0) != 1){ stop("use shape > 0\n") }

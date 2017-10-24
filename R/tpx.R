@@ -29,7 +29,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
 
   ## return fit for single K
   if(length(K)==1 && bf==FALSE){
-    if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
+    if(verb){ cat(paste("Fitting the",K,"clusters/topics model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn,
                    nbundles=nbundles, use_squarem, type=type, ind_model_indices = ind_model_indices,
