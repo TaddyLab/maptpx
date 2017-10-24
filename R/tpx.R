@@ -110,6 +110,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
 ## theta initialization
 tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
                     use_squarem=FALSE, init.adapt, signatures){
+
 ## initheta can be matrix, or c(nK, tmax, tol, verb)
 
   if(is.matrix(initheta)){

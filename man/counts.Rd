@@ -10,7 +10,7 @@ stm_tfidf(x)
 }
 \arguments{
   \item{x}{A \code{simple_triplet_matrix} or \code{matrix} of counts. }
-  \item{byrow}{Whether to normalizetpx by row or column totals.}
+  \item{byrow}{Whether to normalize by row or column totals.}
 }
 \value{
  \code{normalizetpx} divides the counts by row or column totals, and  \code{stm_tfidf} returns a matrix with entries \eqn{x_{ij} \log[ n/(d_j+1) ]}, where \eqn{x_{ij}} is term-j frequency in document-i, 
