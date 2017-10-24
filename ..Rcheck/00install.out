@@ -1,0 +1,14 @@
+* installing *source* package ‘maptpx’ ...
+** libs
+make: Nothing to be done for `all'.
+make: `symbols.rds' is up to date.
+installing to /Users/kushal/Documents/maptpx/..Rcheck/maptpx/libs
+** R
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded
+* DONE (maptpx)

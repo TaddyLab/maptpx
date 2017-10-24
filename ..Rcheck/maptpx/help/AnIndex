@@ -1,0 +1,8 @@
+expit	topicVar
+logit	topicVar
+normalizetpx	counts
+predict.topics	predict.topics
+rdir	rdir
+stm_tfidf	counts
+topics	topics
+topicVar	topicVar

@@ -1,0 +1,11 @@
+Package: maptpx
+Title:  MAP Estimation of Topic Models
+Version: 1.9-4
+Author: Matt Taddy <taddy@chicagobooth.edu>
+Depends: R (>= 2.10)
+Imports: slam, SQUAREM, boot
+Suggests: MASS
+Description:  Posterior maximization for topic models (LDA) in text analysis, as described in Taddy (2012) `on estimation and selection for topic models'. Previous versions of this code were included as part of the textir package. If you want to take advantage of openmp parallelization, uncomment the relevant flags in src/MAKEVARS before compiling.
+Maintainer: Matt Taddy <taddy@chicagobooth.edu>
+License: GPL-3
+URL: http://faculty.chicagobooth.edu/matt.taddy/index.html

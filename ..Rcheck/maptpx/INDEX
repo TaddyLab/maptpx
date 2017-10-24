@@ -1,0 +1,5 @@
+predict.topics          topic predict
+rdir                    Dirichlet RNG
+stm_tfidf               Utilities for count matrices
+topicVar                topic variance
+topics                  Estimation for Topic Models

@@ -1,0 +1,95 @@
+* using log directory ‘/Users/kushal/Documents/maptpx/..Rcheck’
+* using R version 3.3.3 (2017-03-06)
+* using platform: x86_64-apple-darwin13.4.0 (64-bit)
+* using session charset: UTF-8
+* using option ‘--as-cran’
+* checking for file ‘./DESCRIPTION’ ... OK
+* this is package ‘maptpx’ version ‘1.9-3’
+* checking CRAN incoming feasibility ... NOTE
+Maintainer: ‘Matt Taddy <taddy@chicagobooth.edu>’
+
+Found the following (possibly) invalid URLs:
+  URL: http://cran.r-project.org/web/packages/distrom/index.html
+    From: README.md
+    Status: 200
+    Message: OK
+    CRAN URL not in canonical form
+  URL: http://www.cran.r-project.org/web/packages/textir/index.html
+    From: README.md
+    Status: 404
+    Message: Not Found
+  The canonical URL of the CRAN page for a package is 
+  https://cran.r-project.org/package=pkgname
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... WARNING
+Subdirectory ‘maptpx/src’ contains apparent object files/libraries
+  latools.o maptpx.so rhelp.o topics.o
+Object files/libraries should not be included in a source package.
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... NOTE
+Found the following hidden files and directories:
+  .DS_Store
+  .Rbuildignore~
+  .Rhistory
+  .gitignore
+  R/.DS_Store
+  src/.DS_Store
+  ..Rcheck
+These were most likely included in error. See section ‘Package
+structure’ in the ‘Writing R Extensions’ manual.
+
+CRAN-pack does not know about
+  .DS_Store
+  .Rbuildignore~
+  R/.DS_Store
+  src/.DS_Store
+  ..Rcheck
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘maptpx’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking DESCRIPTION meta-information ... NOTE
+Checking should be performed on sources prepared by ‘R CMD build’.
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... WARNING
+Found the following directory with the name of a check directory:
+  ./..Rcheck
+Most likely, these were included erroneously.
+* checking R files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking line endings in C/C++/Fortran sources/headers ... OK
+* checking line endings in Makefiles ... OK
+* checking compilation flags in Makevars ... OK
+* checking for GNU extensions in Makefiles ... OK
+* checking for portable use of $(BLAS_LIBS) and $(LAPACK_LIBS) ... OK
+* checking compiled code ... OK
+* checking files in ‘vignettes’ ... OK
+* checking examples ... OK
+* checking PDF version of manual ... OK
+* DONE
+Status: 2 WARNINGs, 3 NOTEs
