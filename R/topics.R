@@ -44,7 +44,7 @@ topics <- function(counts,
   if(prod(K>1)!=1){ stop(cat("use K values > 1\n")) }
   K <- sort(K)
 
-  index_init <- 1:(max(2, min(ceiling(nrow(X)*.05),100)));
+  index_init <- 1:(max(2, min(ceiling(nrow(X)*.4),100)));
   if(sample_init==TRUE){
     samp_length <- length(index_init);
     index_init <- sample(1:nrow(X),samp_length);
