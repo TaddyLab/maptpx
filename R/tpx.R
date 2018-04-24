@@ -29,7 +29,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
 
   ## return fit for single K
   if(length(K)==1 && bf==FALSE){
-    if(verb){ cat(paste("Fitting the",K,"topic model.\n")) }
+    if(verb){ cat(paste("Fitting the",K,"clusters/topics model.\n")) }
     fit <-  tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                    admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol, qn=qn,
                    nbundles=nbundles, use_squarem, type=type, ind_model_indices = ind_model_indices,
@@ -109,7 +109,12 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
 
 ## theta initialization
 tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
+<<<<<<< HEAD
                     use_squarem=FALSE, init.adapt){
+=======
+                    use_squarem=FALSE, init.adapt, signatures){
+
+>>>>>>> d064107d504e14288216fce4cd12f9a2c04793b6
 ## initheta can be matrix, or c(nK, tmax, tol, verb)
 
   if(is.matrix(initheta)){
@@ -143,7 +148,6 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
 #  return(initheta)
   } else{
   initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(col_sums(X)), ncol=1), matrix(rep(1,nrow(X))), 2)
-
   if(verb > 0)
     { cat("\n")
       print(list(Kseq=Kseq, tmax=tmax, tol=tol)) }

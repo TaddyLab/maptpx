@@ -1,2 +1,14 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+..Rcheck
+.DS_Store
+.Rhistory
+.gitignore
+.git/*
+.DS_Store
+.Rhistory
+.gitignore
+R/.DS_Store
+src/.DS_Store
+..Rcheck
+.git
