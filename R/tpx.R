@@ -139,10 +139,10 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
   nK <- length( Kseq <-  unique(ceiling(seq(2,K1,length=ilength))) )
 
   if(!init.adapt){
-  initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(X), ncol=1), matrix(rep(1,nrow(X))), K1)
+  initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(col_sums(X)), ncol=1), matrix(rep(1,nrow(X))), K1)
 #  return(initheta)
   } else{
-  initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(X), ncol=1), matrix(rep(1,nrow(X))), 2)
+  initheta <- tpxThetaStart(X, matrix(col_sums(X)/sum(col_sums(X)), ncol=1), matrix(rep(1,nrow(X))), 2)
 
   if(verb > 0)
     { cat("\n")
