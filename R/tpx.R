@@ -109,12 +109,7 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
 
 ## theta initialization
 tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
-<<<<<<< HEAD
                     use_squarem=FALSE, init.adapt){
-=======
-                    use_squarem=FALSE, init.adapt, signatures){
-
->>>>>>> d064107d504e14288216fce4cd12f9a2c04793b6
 ## initheta can be matrix, or c(nK, tmax, tol, verb)
 
   if(is.matrix(initheta)){
@@ -158,7 +153,7 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,
-                  nbundles = nbundles, type="full", signatures=signatures,
+                  nbundles = nbundles, type="full", signatures=NULL,
                   use_squarem = FALSE, light=FALSE)
     if(verb>1){ cat(paste(Kseq[i],",", sep="")) }
 
