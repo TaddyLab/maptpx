@@ -12,3 +12,4 @@ R/.DS_Store
 src/.DS_Store
 ..Rcheck
 .git
+test
