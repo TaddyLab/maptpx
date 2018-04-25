@@ -8,15 +8,11 @@ Estimation for Topic Models
 topics(counts, K, shape=NULL, initopics=NULL, 
   tol=0.1, bf=FALSE, kill=2, ord=TRUE, verb=1,
   admix=TRUE, nbundles=1, use_squarem=FALSE,
-<<<<<<< HEAD
-  init.adapt=FALSE, light=1, method_admix=1, ...)
-=======
   init.adapt=FALSE,  type = "full",
   ind_model_indices = NULL,
   signatures = NULL, 
   light=1, method_admix=1, 
   sample_init = TRUE, tmax = 10000, ...)
->>>>>>> d064107d504e14288216fce4cd12f9a2c04793b6
 }
 \arguments{
   \item{counts}{
@@ -44,11 +40,6 @@ topics(counts, K, shape=NULL, initopics=NULL,
   \item{nbundles}{apply the active set method update to the topic proportions \code{omega} after these many steps if \code{light=1}. Defaults to 1, which essentially means the update is used at each step.}
   \item{use_squarem}{if TRUE, uses the SQUAREM implementation due to Ravi Varadhan. Else uses the usual EM + Quasi Newton Acceleration update.}
   \item{init.adapt}{if TRUE, adpatively initializes the topic distributions \code{theta}. Deafults to FALSE.}
-<<<<<<< HEAD
-  \item{light}{May tale values 0,1,2. If \code{light=2}, we select a set of genes after a burn-in period for each cluster and iterate over these selected genes. If \code{light=1}, the active set method update occurs after every \code{nbundles} steps. If \code{light=0}, no active set method is used for updating the topic proportions \code{omega}. Defaults to 1.}
-  \item{method_admix}{May take values 1 or 2. If method_admix=1, R code is used for EM update. If \code{emthod_admix=2}, C code is used for EM update. Usually C code is preferredfor small datasets, but R code is performs more stablly for large data and is also faster. Defaults to 1.}
-  
-=======
   \item{type}{whether to use the "full" version of the topic model
   or the "independent" version proposed by Shiraishi and Stephens (2015) when the variables comprise of blocks of features.}
   \item{ind_model_indices}{The indices representing the blocks of   features in the variables - to be needed for the "independent"
@@ -60,7 +51,6 @@ topics(counts, K, shape=NULL, initopics=NULL,
   \item{method_admix}{May take values 1 or 2. If method_admix=1, R code is used for EM update. If \code{method_admix=2}, C code is used for EM update. Usually C code is preferredfor small datasets, but R code is performs more stablly for large data and is also faster. Defaults to 1.}
   \item{sample_init}{If TRUE, we use a fixed initialization scheme due to Taddy 2014, otherwise we switch to random initialization. Defaults to TRUE.}
   \item{tmax}{Number of iterations used for the topic model. Defaults to 10,000 iterations.}
->>>>>>> d064107d504e14288216fce4cd12f9a2c04793b6
   \item{...}{Additional arguments to the undocumented internal \code{tpx*} functions. }
  }
 \details{A latent topic model represents each i'th document's term-count vector \eqn{X_i} 
