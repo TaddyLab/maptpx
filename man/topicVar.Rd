@@ -28,7 +28,7 @@ Taddy (2012), \emph{On Estimation and Selection for Topic Models}.
 \url{http://arxiv.org/abs/1109.4518}
 }
 \author{
-  Matt Taddy \email{taddy@chicagobooth.edu}
+  Matt Taddy \email{mataddy@gmail.com}
 }
 
 \seealso{

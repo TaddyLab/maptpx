@@ -14,7 +14,7 @@ rdir(n, alpha)
  An \code{n} column matrix containing the observations.
 }
 \author{
-  Matt Taddy \email{taddy@chicagobooth.edu}
+  Matt Taddy \email{mataddy@gmail.com}
 }
 \examples{
 rdir(3,rep(1,6))

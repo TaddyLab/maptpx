@@ -62,13 +62,12 @@ Taddy (2012), \emph{On Estimation and Selection for Topic Models}.
 \url{http://arxiv.org/abs/1109.4518}
 }
 \author{
-  Matt Taddy \email{taddy@chicagobooth.edu}
+  Matt Taddy \email{mataddy@gmail.com}
 }
 \seealso{
   plot.topics, summary.topics, predict.topics, wsjibm, congress109, we8there
 }
 \examples{
-## see also http://faculty.chicagobooth.edu/matt.taddy/teaching/we8there.R
 
 ## Simulation Parameters
 K <- 10

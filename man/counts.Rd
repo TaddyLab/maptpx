@@ -17,7 +17,7 @@ stm_tfidf(x)
 and \eqn{d_j} is the number of documents containing term-j.
 }
 \author{
-  Matt Taddy \email{taddy@chicagobooth.edu}
+  Matt Taddy \email{mataddy@gmail.com}
 }
 \examples{
 normalize( matrix(1:9, ncol=3) )
