@@ -1,5 +1,8 @@
 useDynLib(maptpx)
 import(slam)
+importFrom("grDevices", "grey")
+importFrom("graphics", "axis", "hist", "image", "par", "points", "text")
+importFrom("stats", "pchisq", "rgamma")
 
 export(stm_tfidf,
        normalize,
