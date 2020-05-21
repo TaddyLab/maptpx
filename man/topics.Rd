@@ -47,7 +47,7 @@ topics(counts, K, shape=NULL, initopics=NULL,
   the them to NULL.}
   \item{signatures}{A matrix of factors with each column representing a factor for each block with the levels reported along the rows 
   for each row.}
-  \item{light}{May tale values 0,1,2. If \code{light=2}, we select a set of genes after a burn-in period for each cluster and iterate over these selected genes. If \code{light=1}, the active set method update occurs after every \code{nbundles} steps. If \code{light=0}, no active set method is used for updating the topic proportions \code{omega}. Defaults to 1.}
+  \item{light}{May take values 0,1,2. If \code{light=2}, we select a set of genes after a burn-in period for each cluster and iterate over these selected genes. If \code{light=1}, the active set method update occurs after every \code{nbundles} steps. If \code{light=0}, no active set method is used for updating the topic proportions \code{omega}. Defaults to 1.}
   \item{method_admix}{May take values 1 or 2. If method_admix=1, R code is used for EM update. If \code{method_admix=2}, C code is used for EM update. Usually C code is preferredfor small datasets, but R code is performs more stablly for large data and is also faster. Defaults to 1.}
   \item{sample_init}{If TRUE, we use a fixed initialization scheme due to Taddy 2014, otherwise we switch to random initialization. Defaults to TRUE.}
   \item{tmax}{Number of iterations used for the topic model. Defaults to 10,000 iterations.}
@@ -83,13 +83,12 @@ Taddy (2012), \emph{On Estimation and Selection for Topic Models}.
 \url{http://arxiv.org/abs/1109.4518}
 }
 \author{
-  Matt Taddy \email{taddy@chicagobooth.edu}
+  Matt Taddy \email{mataddy@gmail.com}
 }
 \seealso{
   plot.topics, summary.topics, predict.topics, wsjibm, congress109, we8there
 }
 \examples{
-## see also http://faculty.chicagobooth.edu/matt.taddy/teaching/we8there.R
 
 ## Simulation Parameters
 K <- 10

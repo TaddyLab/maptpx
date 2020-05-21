@@ -61,10 +61,8 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
   ## allocate and initialize
   best <- -Inf
   bestfit <- NULL
-
   ## loop over topic numbers
   for(i in 1:nK){
-
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=admix, method_admix=method_admix, grp=grp, tmax=tmax, wtol=wtol,
@@ -85,26 +83,25 @@ tpxSelect <- function(X, K, bf, initheta, alpha, tol, kill, verb, nbundles,
     if(is.nan(BF[i]) | is.na(BF[i])){
       cat("NAN for Bayes factor.\n")
       return(list(theta=fit$theta, omega=fit$omega, alpha=fit$alpha,
-                  BF=BF, D=D, K=K))
-   #   return(bestfit)
+                  BF=BF, D=D, K=K[i]))
     }
 
     else{
           if(BF[i] > best){ # check for a new "best" topic
-          best <- BF[i]
-          bestfit <- fit
+            best <- BF[i]
+            bestfit <- fit
           } else if(kill>0 && i>kill){ # break after kill consecutive drops
-          if(prod(BF[i-0:(kill-1)] < BF[i-1:kill])==1) break }
+            if(prod(BF[i-0:(kill-1)] < BF[i-1:kill])==1) break }
 
           if(i<nK){
               if(!admix){ initheta <- tpxinit(X,2,K[i+1], alpha, 0) }
               else{ initheta <- tpxThetaStart(X, fit$theta, fit$omega, K[i+1]) }
           }
-    names(BF) <- dimnames(D)[[2]] <- paste(K[1:length(BF)])
-    return(list(theta=bestfit$theta, omega=bestfit$omega, alpha=bestfit$alpha,
-              BF=BF, D=D, K=K))
-    }
+      }
   }
+  names(BF) <- dimnames(D)[[2]] <- paste(K[1:length(BF)])
+  return(list(theta=bestfit$theta, omega=bestfit$omega, alpha=bestfit$alpha,
+              BF=BF, D=D, K=bestfit$K))
 }
 
 ## theta initialization
@@ -149,7 +146,6 @@ tpxinit <- function(X, initheta, K1, alpha, verb, nbundles=1,
 
   ## loop over topic numbers
   for(i in 1:nK){
-
     ## Solve for map omega in NEF space
     fit <- tpxfit(X=X, theta=initheta, alpha=alpha, tol=tol, verb=verb,
                   admix=TRUE, method_admix=1, grp=NULL, tmax=tmax, wtol=-1, qn=-1,

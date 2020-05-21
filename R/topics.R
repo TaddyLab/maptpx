@@ -24,6 +24,7 @@ topics <- function(counts,
   ## tpxselect defaults: tmax=10000, wtol=10^(-4), qn=100, grp=NULL,
   ## nonzero=FALSE, dcut=-10, top_genes=100, burn_in=5
 {
+
   X <- CheckCounts(counts)
   p <- ncol(X)
   if(verb>0)
@@ -111,9 +112,9 @@ predict.topics <- function(object, newcounts, loglhd=FALSE, ...)
   if(class(newcounts)[1] == "TermDocumentMatrix"){ newcounts <- t(newcounts) }
   X <- as.simple_triplet_matrix(newcounts)
 
-  if(!(class(object)%in%c("topics","matrix"))){ stop("object class must be `topics' or 'matrix'.") }
+  if(!(class(object)[1]%in%c("topics","matrix"))){ stop("object class must be `topics' or 'matrix'.") }
 
-  if(class(object)=="topics"){
+  if(class(object)[1]=="topics"){
     theta <- object$theta
     if(nrow(theta) != ncol(X)){ stop("Dimension mismatch: nrow(theta) != ncol(X)") }
     if(nrow(object$X) != nrow(object$omega)) # simple mixture
